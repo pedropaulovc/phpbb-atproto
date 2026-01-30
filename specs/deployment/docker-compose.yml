@@ -1,0 +1,167 @@
+version: '3.8'
+
+# phpBB AT Protocol Integration - Docker Compose Configuration
+#
+# Services:
+#   - phpbb: Web application (Apache + PHP-FPM)
+#   - mysql: Database server
+#   - sync-service: AT Protocol firehose sync daemon
+#
+# Usage:
+#   cp .env.example .env
+#   # Edit .env with your values
+#   docker-compose up -d
+#
+# Required environment variables (see .env.example):
+#   - MYSQL_ROOT_PASSWORD
+#   - MYSQL_PASSWORD
+#   - FORUM_DID
+#   - FORUM_PDS_URL
+#   - TOKEN_ENCRYPTION_KEYS
+#   - TOKEN_ENCRYPTION_KEY_VERSION
+
+services:
+  phpbb:
+    image: phpbb/phpbb:3.3
+    container_name: phpbb-web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Persistent phpBB data
+      - phpbb_data:/var/www/html
+      # Mount AT Protocol extension (development)
+      - ./ext/phpbb/atproto:/var/www/html/ext/phpbb/atproto:ro
+      # Custom PHP configuration
+      - ./docker/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      PHPBB_DB_HOST: mysql
+      PHPBB_DB_NAME: phpbb
+      PHPBB_DB_USER: phpbb
+      PHPBB_DB_PASSWORD: ${MYSQL_PASSWORD}
+      # AT Protocol configuration passed to extension
+      ATPROTO_FORUM_DID: ${FORUM_DID}
+      ATPROTO_FORUM_PDS_URL: ${FORUM_PDS_URL}
+      ATPROTO_LABELER_DID: ${LABELER_DID:-${FORUM_DID}}
+      ATPROTO_TOKEN_ENCRYPTION_KEYS: ${TOKEN_ENCRYPTION_KEYS}
+      ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION: ${TOKEN_ENCRYPTION_KEY_VERSION}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - phpbb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  mysql:
+    image: mysql:8.0
+    container_name: phpbb-mysql
+    volumes:
+      # Persistent database storage
+      - mysql_data:/var/lib/mysql
+      # Initialization scripts (run once on first start)
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Custom MySQL configuration
+      - ./docker/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: phpbb
+      MYSQL_USER: phpbb
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - phpbb_network
+    restart: unless-stopped
+    # Performance tuning
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=200
+      - --innodb_buffer_pool_size=256M
+
+  sync-service:
+    build:
+      context: ./sync-service
+      dockerfile: Dockerfile
+    container_name: phpbb-sync
+    environment:
+      # Database connection
+      MYSQL_HOST: mysql
+      MYSQL_DATABASE: phpbb
+      MYSQL_USER: phpbb
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      # AT Protocol configuration
+      RELAY_URL: ${RELAY_URL:-wss://bsky.network/xrpc/com.atproto.sync.subscribeRepos}
+      FORUM_DID: ${FORUM_DID}
+      FORUM_PDS_URL: ${FORUM_PDS_URL}
+      FORUM_PDS_ACCESS_TOKEN: ${FORUM_PDS_ACCESS_TOKEN}
+      LABELER_DID: ${LABELER_DID:-${FORUM_DID}}
+      LABELER_URL: ${LABELER_URL:-${FORUM_PDS_URL}}
+      # Security
+      TOKEN_ENCRYPTION_KEYS: ${TOKEN_ENCRYPTION_KEYS}
+      TOKEN_ENCRYPTION_KEY_VERSION: ${TOKEN_ENCRYPTION_KEY_VERSION}
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - phpbb_network
+    restart: always
+    stop_grace_period: 30s
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    # Healthcheck verifies cursor freshness
+    healthcheck:
+      test: ["CMD", "php", "/app/bin/healthcheck.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  phpbb_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  phpbb_data:
+    driver: local
+  mysql_data:
+    driver: local
+
+# ---
+# Development overrides (docker-compose.override.yml)
+# ---
+# version: '3.8'
+# services:
+#   phpbb:
+#     volumes:
+#       - ./ext/phpbb/atproto:/var/www/html/ext/phpbb/atproto
+#     environment:
+#       PHP_IDE_CONFIG: "serverName=phpbb"
+#       XDEBUG_MODE: debug
+#   sync-service:
+#     volumes:
+#       - ./sync-service/src:/app/src
+#     environment:
+#       LOG_LEVEL: debug
