@@ -1,0 +1,175 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.board",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A forum or subforum definition. Stored on the forum's PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["name", "slug", "boardType", "order"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "maxGraphemes": 100,
+            "description": "Display name of the forum."
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "URL-friendly identifier."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "maxGraphemes": 2000,
+            "description": "Forum description. May contain BBCode."
+          },
+          "boardType": {
+            "type": "string",
+            "enum": ["category", "forum", "link"],
+            "description": "Type of board. Categories contain forums."
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Display order within parent."
+          },
+          "parent": {
+            "type": "ref",
+            "ref": "#strongRef",
+            "description": "Parent board. Null for top-level categories."
+          },
+          "image": {
+            "type": "blob",
+            "accept": ["image/png", "image/jpeg", "image/gif"],
+            "maxSize": 1048576,
+            "description": "Forum icon (max 1MB)."
+          },
+          "linkUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "External URL for link-type boards."
+          },
+          "rules": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "Forum-specific rules. May contain BBCode."
+          },
+          "rulesLink": {
+            "type": "string",
+            "format": "uri",
+            "description": "External URL for forum rules."
+          },
+          "settings": {
+            "type": "ref",
+            "ref": "#boardSettings"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "locked"],
+            "default": "open",
+            "description": "Whether new posts are allowed."
+          }
+        }
+      }
+    },
+    "strongRef": {
+      "type": "object",
+      "required": ["uri", "cid"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        }
+      }
+    },
+    "boardSettings": {
+      "type": "object",
+      "description": "Board-specific settings.",
+      "properties": {
+        "topicsPerPage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25,
+          "description": "Topics per page."
+        },
+        "displayOnIndex": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show on forum index."
+        },
+        "enableIndexing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include in search index."
+        },
+        "enableIcons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow post icons."
+        },
+        "allowPolls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow polls in topics."
+        },
+        "requireApproval": {
+          "type": "boolean",
+          "default": false,
+          "description": "Posts require moderator approval."
+        },
+        "displaySubforumList": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show subforums list."
+        },
+        "password": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Password to access this forum (optional)."
+        },
+        "style": {
+          "type": "string",
+          "description": "Override style/theme for this forum."
+        },
+        "prune": {
+          "type": "ref",
+          "ref": "#pruneSettings"
+        }
+      }
+    },
+    "pruneSettings": {
+      "type": "object",
+      "description": "Auto-prune settings.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Prune topics older than N days."
+        },
+        "viewedDays": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Prune topics not viewed in N days."
+        },
+        "frequency": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Check every N days."
+        }
+      }
+    }
+  }
+}

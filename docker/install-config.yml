@@ -1,0 +1,32 @@
+installer:
+    admin:
+        name: admin
+        password: adminpassword
+        email: admin@example.com
+
+    board:
+        lang: en
+        name: AT Protocol Test Forum
+        description: Testing phpBB with AT Protocol integration
+
+    database:
+        dbms: mysqli
+        dbhost: db
+        dbport: 3306
+        dbname: phpbb
+        dbuser: phpbb
+        dbpasswd: phpbbpassword
+        table_prefix: phpbb_
+
+    email:
+        enabled: false
+
+    server:
+        cookie_secure: false
+        server_protocol: http://
+        force_server_vars: false
+        server_name: localhost
+        server_port: 8080
+        script_path: /
+
+    extensions: []

@@ -1,0 +1,51 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.subscription",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A subscription to a forum or topic for notifications. Stored on user's PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "#strongRef",
+            "description": "Reference to forum board or post (for topic subscription, points to first post)."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["forum", "topic"],
+            "description": "Type of subscription."
+          },
+          "notifyMethod": {
+            "type": "string",
+            "enum": ["board", "email", "both"],
+            "default": "board",
+            "description": "How to be notified."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    },
+    "strongRef": {
+      "type": "object",
+      "required": ["uri", "cid"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        }
+      }
+    }
+  }
+}

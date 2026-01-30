@@ -1,0 +1,423 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.config",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Global forum configuration. Stored on the forum's PDS.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["siteName"],
+        "properties": {
+          "siteName": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Forum name."
+          },
+          "siteDescription": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Forum description."
+          },
+          "siteLogo": {
+            "type": "blob",
+            "accept": ["image/png", "image/jpeg", "image/gif", "image/svg+xml"],
+            "maxSize": 2097152,
+            "description": "Forum logo (max 2MB)."
+          },
+          "defaultLanguage": {
+            "type": "string",
+            "default": "en",
+            "description": "Default language code."
+          },
+          "defaultTimezone": {
+            "type": "string",
+            "default": "UTC",
+            "description": "Default timezone."
+          },
+          "defaultStyle": {
+            "type": "string",
+            "description": "Default theme/style name."
+          },
+          "dateFormat": {
+            "type": "string",
+            "default": "d M Y H:i",
+            "description": "Default date format."
+          },
+          "features": {
+            "type": "ref",
+            "ref": "#featureSettings"
+          },
+          "posting": {
+            "type": "ref",
+            "ref": "#postingSettings"
+          },
+          "registration": {
+            "type": "ref",
+            "ref": "#registrationSettings"
+          },
+          "avatars": {
+            "type": "ref",
+            "ref": "#avatarSettings"
+          },
+          "signatures": {
+            "type": "ref",
+            "ref": "#signatureSettings"
+          },
+          "privateMessages": {
+            "type": "ref",
+            "ref": "#pmSettings"
+          },
+          "customBbcodes": {
+            "type": "array",
+            "maxLength": 100,
+            "items": {
+              "type": "ref",
+              "ref": "#bbcode"
+            }
+          },
+          "smilies": {
+            "type": "array",
+            "maxLength": 500,
+            "items": {
+              "type": "ref",
+              "ref": "#smiley"
+            }
+          },
+          "censoredWords": {
+            "type": "array",
+            "maxLength": 1000,
+            "items": {
+              "type": "ref",
+              "ref": "#censoredWord"
+            }
+          },
+          "ranks": {
+            "type": "array",
+            "maxLength": 100,
+            "items": {
+              "type": "ref",
+              "ref": "#rank"
+            }
+          }
+        }
+      }
+    },
+    "featureSettings": {
+      "type": "object",
+      "properties": {
+        "allowAttachments": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowBbcode": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowSmilies": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowSignatures": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowBookmarks": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowBirthdays": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowQuickReply": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowTopicNotify": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowForumNotify": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "postingSettings": {
+      "type": "object",
+      "properties": {
+        "maxPostChars": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 60000
+        },
+        "minPostChars": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1
+        },
+        "maxSubjectChars": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 85
+        },
+        "maxUrlLength": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 55
+        },
+        "floodInterval": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 15,
+          "description": "Seconds between posts."
+        },
+        "editTime": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Minutes allowed to edit (0 = unlimited)."
+        },
+        "deleteTime": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Minutes allowed to delete (0 = unlimited)."
+        },
+        "bumpInterval": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 10,
+          "description": "Hours between topic bumps."
+        }
+      }
+    },
+    "registrationSettings": {
+      "type": "object",
+      "properties": {
+        "requireActivation": {
+          "type": "string",
+          "enum": ["none", "user", "admin"],
+          "default": "none"
+        },
+        "maxRegAttempts": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 5
+        },
+        "minUsernameChars": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3
+        },
+        "maxUsernameChars": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 20
+        },
+        "minPasswordChars": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 6
+        },
+        "allowNameChange": {
+          "type": "boolean",
+          "default": false
+        },
+        "coppaEnabled": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "avatarSettings": {
+      "type": "object",
+      "properties": {
+        "allowAvatars": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowUpload": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowRemote": {
+          "type": "boolean",
+          "default": false
+        },
+        "allowGravatar": {
+          "type": "boolean",
+          "default": false
+        },
+        "maxWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 90
+        },
+        "maxHeight": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 90
+        },
+        "maxFilesize": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 6144,
+          "description": "Bytes."
+        }
+      }
+    },
+    "signatureSettings": {
+      "type": "object",
+      "properties": {
+        "maxChars": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 255
+        },
+        "maxLines": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 4
+        },
+        "maxUrls": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 5
+        },
+        "maxImages": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "maxImageWidth": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 468
+        },
+        "maxImageHeight": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 60
+        },
+        "allowBbcode": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowSmilies": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "pmSettings": {
+      "type": "object",
+      "properties": {
+        "allowPrivateMessages": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowAttachments": {
+          "type": "boolean",
+          "default": false
+        },
+        "maxRecipients": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5
+        },
+        "fullFolder": {
+          "type": "string",
+          "enum": ["hold", "oldest", "newest"],
+          "default": "hold"
+        }
+      }
+    },
+    "bbcode": {
+      "type": "object",
+      "required": ["tag", "htmlReplacement"],
+      "properties": {
+        "tag": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "htmlReplacement": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "helpLine": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "displayOnPosting": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "smiley": {
+      "type": "object",
+      "required": ["code", "image"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "image": {
+          "type": "blob",
+          "accept": ["image/png", "image/jpeg", "image/gif"],
+          "maxSize": 65536
+        },
+        "emotion": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "censoredWord": {
+      "type": "object",
+      "required": ["word"],
+      "properties": {
+        "word": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "replacement": {
+          "type": "string",
+          "maxLength": 255
+        }
+      }
+    },
+    "rank": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "minPosts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum posts for auto-rank. Null for special ranks."
+        },
+        "isSpecial": {
+          "type": "boolean",
+          "default": false,
+          "description": "Special rank assigned manually."
+        },
+        "image": {
+          "type": "blob",
+          "accept": ["image/png", "image/jpeg", "image/gif"],
+          "maxSize": 65536
+        }
+      }
+    }
+  }
+}

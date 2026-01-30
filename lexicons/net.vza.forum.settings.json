@@ -1,0 +1,203 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.settings",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "User's forum preferences. Stored on the user's PDS.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "maxLength": 30,
+            "description": "Preferred language code."
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Timezone identifier."
+          },
+          "dateFormat": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Date format string."
+          },
+          "style": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Preferred theme/style."
+          },
+          "display": {
+            "type": "ref",
+            "ref": "#displaySettings"
+          },
+          "notifications": {
+            "type": "ref",
+            "ref": "#notificationSettings"
+          },
+          "privacy": {
+            "type": "ref",
+            "ref": "#privacySettings"
+          },
+          "messaging": {
+            "type": "ref",
+            "ref": "#messagingSettings"
+          }
+        }
+      }
+    },
+    "displaySettings": {
+      "type": "object",
+      "properties": {
+        "topicShowDays": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Show topics from last N days (0 = all)."
+        },
+        "topicSortBy": {
+          "type": "string",
+          "enum": ["lastPost", "postTime", "replies", "views", "title"],
+          "default": "lastPost"
+        },
+        "topicSortDir": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "desc"
+        },
+        "postShowDays": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Show posts from last N days (0 = all)."
+        },
+        "postSortBy": {
+          "type": "string",
+          "enum": ["postTime", "subject"],
+          "default": "postTime"
+        },
+        "postSortDir": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "asc"
+        },
+        "postsPerPage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 15
+        },
+        "topicsPerPage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        },
+        "showSignatures": {
+          "type": "boolean",
+          "default": true
+        },
+        "showAvatars": {
+          "type": "boolean",
+          "default": true
+        },
+        "showImages": {
+          "type": "boolean",
+          "default": true
+        },
+        "showFlash": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "notificationSettings": {
+      "type": "object",
+      "properties": {
+        "notifyOnReply": {
+          "type": "boolean",
+          "default": false,
+          "description": "Notify when someone replies to your posts."
+        },
+        "notifyOnQuote": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when quoted."
+        },
+        "notifyOnMention": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify when @mentioned."
+        },
+        "notifyOnPm": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify on private messages."
+        },
+        "notifyMethod": {
+          "type": "string",
+          "enum": ["board", "email", "both"],
+          "default": "board"
+        },
+        "digestFrequency": {
+          "type": "string",
+          "enum": ["never", "daily", "weekly"],
+          "default": "never"
+        }
+      }
+    },
+    "privacySettings": {
+      "type": "object",
+      "properties": {
+        "allowViewOnline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show online status."
+        },
+        "allowViewEmail": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show email to users."
+        },
+        "allowMassEmail": {
+          "type": "boolean",
+          "default": true,
+          "description": "Receive admin mass emails."
+        },
+        "hideOnline": {
+          "type": "boolean",
+          "default": false,
+          "description": "Appear offline."
+        }
+      }
+    },
+    "messagingSettings": {
+      "type": "object",
+      "properties": {
+        "allowPm": {
+          "type": "boolean",
+          "default": true,
+          "description": "Accept private messages."
+        },
+        "pmPopup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show popup on new PM."
+        },
+        "forwardPmToEmail": {
+          "type": "boolean",
+          "default": false,
+          "description": "Forward PMs to email."
+        },
+        "pmFolderFull": {
+          "type": "string",
+          "enum": ["hold", "deleteOldest", "deleteNewest"],
+          "default": "hold",
+          "description": "Action when PM folder is full."
+        }
+      }
+    }
+  }
+}

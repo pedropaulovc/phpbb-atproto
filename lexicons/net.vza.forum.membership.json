@@ -1,0 +1,47 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.membership",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A user's group membership. Stored on the forum's PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["userDid", "groupId", "createdAt"],
+        "properties": {
+          "userDid": {
+            "type": "string",
+            "format": "did",
+            "description": "The user's DID."
+          },
+          "groupId": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Reference to group in net.vza.forum.acl."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "pending"],
+            "default": "active",
+            "description": "Membership status."
+          },
+          "isLeader": {
+            "type": "boolean",
+            "default": false,
+            "description": "User is a group leader."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "default": false,
+            "description": "This is the user's default group."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

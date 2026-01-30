@@ -1,0 +1,177 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.post",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A forum post. The first post in a topic includes topic metadata.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["text", "createdAt", "forum"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 100000,
+            "maxGraphemes": 50000,
+            "description": "Post content. May contain BBCode markup."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Client-declared timestamp for the post."
+          },
+          "forum": {
+            "type": "ref",
+            "ref": "#strongRef",
+            "description": "Reference to the forum/board this post belongs to."
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 255,
+            "maxGraphemes": 100,
+            "description": "Topic title. Only present on the first post of a topic."
+          },
+          "reply": {
+            "type": "ref",
+            "ref": "#replyRef",
+            "description": "Reply reference. Present if this is a reply to an existing topic."
+          },
+          "topicType": {
+            "type": "string",
+            "enum": ["normal", "sticky", "announcement", "global"],
+            "default": "normal",
+            "description": "Topic type. Only meaningful on the first post."
+          },
+          "poll": {
+            "type": "ref",
+            "ref": "#poll",
+            "description": "Poll attached to topic. Only on first post."
+          },
+          "attachments": {
+            "type": "array",
+            "maxLength": 20,
+            "items": {
+              "type": "ref",
+              "ref": "#attachment"
+            },
+            "description": "File attachments."
+          },
+          "enableBbcode": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether BBCode parsing is enabled."
+          },
+          "enableSmilies": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether smilies are rendered."
+          },
+          "enableSignature": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether to show author's signature."
+          }
+        }
+      }
+    },
+    "strongRef": {
+      "type": "object",
+      "description": "A strong reference to a record.",
+      "required": ["uri", "cid"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        }
+      }
+    },
+    "replyRef": {
+      "type": "object",
+      "description": "Reference to the post being replied to.",
+      "required": ["root", "parent"],
+      "properties": {
+        "root": {
+          "type": "ref",
+          "ref": "#strongRef",
+          "description": "The first post of the topic (topic root)."
+        },
+        "parent": {
+          "type": "ref",
+          "ref": "#strongRef",
+          "description": "The post being directly replied to."
+        }
+      }
+    },
+    "poll": {
+      "type": "object",
+      "description": "A poll attached to a topic.",
+      "required": ["title", "options"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Poll question."
+        },
+        "options": {
+          "type": "array",
+          "minLength": 2,
+          "maxLength": 20,
+          "items": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": "Poll answer options."
+        },
+        "maxOptions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 1,
+          "description": "Maximum options a user can select."
+        },
+        "endAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "When the poll closes. Null for no end."
+        },
+        "allowVoteChange": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether users can change their vote."
+        }
+      }
+    },
+    "attachment": {
+      "type": "object",
+      "description": "A file attachment.",
+      "required": ["file", "mimeType"],
+      "properties": {
+        "file": {
+          "type": "blob",
+          "accept": ["*/*"],
+          "maxSize": 10485760,
+          "description": "The attached file (max 10MB)."
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of the file."
+        },
+        "filename": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Original filename."
+        },
+        "comment": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Description of the attachment."
+        }
+      }
+    }
+  }
+}

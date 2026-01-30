@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.vote",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A user's vote on a poll. Stored on the user's PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["post", "options", "createdAt"],
+        "properties": {
+          "post": {
+            "type": "ref",
+            "ref": "#strongRef",
+            "description": "Reference to the post containing the poll."
+          },
+          "options": {
+            "type": "array",
+            "minLength": 1,
+            "maxLength": 20,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 19
+            },
+            "description": "Indices of selected poll options (0-based)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the vote was cast."
+          }
+        }
+      }
+    },
+    "strongRef": {
+      "type": "object",
+      "required": ["uri", "cid"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        }
+      }
+    }
+  }
+}

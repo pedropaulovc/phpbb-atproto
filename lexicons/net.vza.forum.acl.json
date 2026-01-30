@@ -1,0 +1,256 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.acl",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Forum access control list. Stored on the forum's PDS.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["groups", "roles"],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "maxLength": 100,
+            "items": {
+              "type": "ref",
+              "ref": "#group"
+            },
+            "description": "User group definitions."
+          },
+          "roles": {
+            "type": "array",
+            "maxLength": 100,
+            "items": {
+              "type": "ref",
+              "ref": "#role"
+            },
+            "description": "Permission role templates."
+          },
+          "globalPermissions": {
+            "type": "array",
+            "maxLength": 500,
+            "items": {
+              "type": "ref",
+              "ref": "#groupPermission"
+            },
+            "description": "Global (site-wide) group permissions."
+          },
+          "forumPermissions": {
+            "type": "array",
+            "maxLength": 5000,
+            "items": {
+              "type": "ref",
+              "ref": "#forumPermission"
+            },
+            "description": "Per-forum group permissions."
+          },
+          "userOverrides": {
+            "type": "array",
+            "maxLength": 1000,
+            "items": {
+              "type": "ref",
+              "ref": "#userOverride"
+            },
+            "description": "Per-user permission overrides."
+          }
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "required": ["id", "name", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Unique group identifier."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Display name."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "type": {
+          "type": "string",
+          "enum": ["open", "closed", "hidden", "special"],
+          "description": "Group visibility and join method."
+        },
+        "color": {
+          "type": "string",
+          "maxLength": 6,
+          "description": "Hex color for usernames."
+        },
+        "avatar": {
+          "type": "blob",
+          "accept": ["image/png", "image/jpeg", "image/gif"],
+          "maxSize": 65536
+        },
+        "rank": {
+          "type": "string",
+          "description": "Rank assigned to group members."
+        },
+        "showOnLegend": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show in team/legend page."
+        },
+        "legendOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Order on legend page."
+        },
+        "founderOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "Only founder can manage."
+        },
+        "skipAuth": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip authentication checks."
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": ["id", "name", "type", "permissions"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Unique role identifier."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Display name."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "type": {
+          "type": "string",
+          "enum": ["admin", "moderator", "user", "forum"],
+          "description": "Role category."
+        },
+        "permissions": {
+          "type": "array",
+          "maxLength": 200,
+          "items": {
+            "type": "ref",
+            "ref": "#permissionSetting"
+          },
+          "description": "Permissions included in this role."
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Display order in admin."
+        }
+      }
+    },
+    "permissionSetting": {
+      "type": "object",
+      "required": ["permission", "setting"],
+      "properties": {
+        "permission": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Permission identifier (e.g., f_post, m_delete, a_board)."
+        },
+        "setting": {
+          "type": "string",
+          "enum": ["yes", "no", "never"],
+          "description": "Permission value. 'never' cannot be overridden."
+        }
+      }
+    },
+    "groupPermission": {
+      "type": "object",
+      "required": ["groupId"],
+      "properties": {
+        "groupId": {
+          "type": "string",
+          "description": "Reference to group.id"
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to role.id. Mutually exclusive with permissions."
+        },
+        "permissions": {
+          "type": "array",
+          "maxLength": 200,
+          "items": {
+            "type": "ref",
+            "ref": "#permissionSetting"
+          },
+          "description": "Individual permission overrides. Mutually exclusive with roleId."
+        }
+      }
+    },
+    "forumPermission": {
+      "type": "object",
+      "required": ["forumUri", "groupId"],
+      "properties": {
+        "forumUri": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "Reference to net.vza.forum.board record."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to group.id"
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to role.id. Mutually exclusive with permissions."
+        },
+        "permissions": {
+          "type": "array",
+          "maxLength": 200,
+          "items": {
+            "type": "ref",
+            "ref": "#permissionSetting"
+          },
+          "description": "Individual permission overrides."
+        }
+      }
+    },
+    "userOverride": {
+      "type": "object",
+      "required": ["userDid"],
+      "properties": {
+        "userDid": {
+          "type": "string",
+          "format": "did",
+          "description": "User's DID."
+        },
+        "forumUri": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "Specific forum, or null for global."
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to role.id."
+        },
+        "permissions": {
+          "type": "array",
+          "maxLength": 200,
+          "items": {
+            "type": "ref",
+            "ref": "#permissionSetting"
+          },
+          "description": "Individual permission overrides."
+        }
+      }
+    }
+  }
+}

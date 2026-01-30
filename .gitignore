@@ -1,0 +1,38 @@
+# Docker volumes
+docker/data/
+docker/*.sql
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# Composer
+/vendor/
+composer.lock
+
+# Node (if any frontend tooling)
+node_modules/
+package-lock.json
+
+# Build artifacts
+/build/
+/dist/
+
+# Test coverage
+/coverage/
+.phpunit.result.cache
