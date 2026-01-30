@@ -327,7 +327,8 @@ The Sync Service runs as a PHP daemon alongside phpBB, using the same codebase p
 
 **Firehose client options**:
 - Use `amphp/websocket-client` for async WebSocket
-- Or Jetstream JSON endpoint: `https://jetstream2.us-east.bsky.network/subscribe`
+- Connect to CBOR firehose: `wss://bsky.network/xrpc/com.atproto.sync.subscribeRepos`
+- CBOR decoding via `clue/cbor-php` or similar library
 - Cursor persistence in `phpbb_atproto_cursors`
 
 **Structure**:
