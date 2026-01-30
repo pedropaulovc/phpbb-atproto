@@ -5,6 +5,7 @@
 - **Location**: `ext/phpbb/atproto/event/`
 - **Dependencies**: label-subscriber (provides cached labels), migrations
 - **Dependents**: None (end of display path)
+- **Task**: phpbb-aya
 
 ## Acceptance Criteria
 - [ ] AC-1: Posts with `!hide` label are excluded from listings

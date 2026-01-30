@@ -5,6 +5,7 @@
 - **Location**: `sync-service/src/Firehose/`
 - **Dependencies**: migrations (for `phpbb_atproto_cursors` table)
 - **Dependents**: event-processor, label-subscriber
+- **Task**: phpbb-tq6
 
 ## Acceptance Criteria
 - [ ] AC-1: Establishes WebSocket connection to relay firehose

@@ -5,6 +5,7 @@
 - **Location**: `ext/phpbb/atproto/auth/`
 - **Dependencies**: migrations (for `phpbb_atproto_users` table)
 - **Dependents**: write-interceptor, config-interceptor, label-display
+- **Task**: phpbb-nai
 
 ## Acceptance Criteria
 - [ ] AC-1: Users can initiate OAuth flow from phpBB login page

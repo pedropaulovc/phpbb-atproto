@@ -5,6 +5,7 @@
 - **Location**: `ext/phpbb/atproto/event/`
 - **Dependencies**: auth-provider (for forum PDS credentials), migrations
 - **Dependents**: forum-config-sync (receives synced config)
+- **Task**: phpbb-1qw
 
 ## Acceptance Criteria
 - [ ] AC-1: Intercepts board/forum creation, update, and deletion

@@ -1,6 +1,7 @@
 version: '3.8'
 
 # phpBB AT Protocol Integration - Docker Compose Configuration
+# Task: phpbb-pke
 #
 # Services:
 #   - phpbb: Web application (Apache + PHP-FPM)

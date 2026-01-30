@@ -4,6 +4,7 @@
 - **Purpose**: Validate complete user journeys through the phpBB AT Protocol integration
 - **Framework**: Playwright or Cypress for browser automation, PHPUnit for API tests
 - **Location**: `tests/e2e/`
+- **Task**: phpbb-ek2
 
 ## Acceptance Criteria
 - [ ] AC-1: Tests run against fully deployed stack (Docker Compose)
