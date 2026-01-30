@@ -5,7 +5,6 @@
 - **Location**: Forum PDS account, Ozone service configuration
 - **Dependencies**: Forum PDS account with labeler capability
 - **Dependents**: label-subscriber, mcp-integration, label-display
-- **Task**: phpbb-e72
 
 ## Acceptance Criteria
 - [ ] AC-1: Forum PDS publishes labeler service declaration record

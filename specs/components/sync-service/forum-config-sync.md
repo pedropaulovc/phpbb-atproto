@@ -5,7 +5,6 @@
 - **Location**: `sync-service/src/Config/`
 - **Dependencies**: database-writer, event-processor, config-interceptor
 - **Dependents**: None (end of config sync path)
-- **Task**: phpbb-3ax
 
 ## Acceptance Criteria
 - [ ] AC-1: Processes `net.vza.forum.board` events from firehose

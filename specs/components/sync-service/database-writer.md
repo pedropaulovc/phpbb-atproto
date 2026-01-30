@@ -5,7 +5,6 @@
 - **Location**: `sync-service/src/Database/`
 - **Dependencies**: event-processor, migrations
 - **Dependents**: forum-config-sync (uses same patterns)
-- **Task**: phpbb-a6e
 
 ## Acceptance Criteria
 - [ ] AC-1: Inserts new posts into `phpbb_posts` and `phpbb_atproto_posts`

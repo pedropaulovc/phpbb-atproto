@@ -4,7 +4,6 @@
 - **Purpose**: Test component interactions with real database and service dependencies
 - **Framework**: PHPUnit 9.x with database fixtures
 - **Location**: `tests/integration/`
-- **Task**: phpbb-gh6
 
 ## Acceptance Criteria
 - [ ] AC-1: Tests use isolated test database

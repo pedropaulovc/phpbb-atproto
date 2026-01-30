@@ -5,7 +5,6 @@
 - **Location**: `ext/phpbb/atproto/migrations/`
 - **Dependencies**: phpBB core database layer
 - **Dependents**: All phpbb-extension components, all sync-service components
-- **Task**: phpbb-lbe
 
 ## Acceptance Criteria
 - [ ] AC-1: All 6 tables (`phpbb_atproto_users`, `phpbb_atproto_posts`, `phpbb_atproto_forums`, `phpbb_atproto_labels`, `phpbb_atproto_cursors`, `phpbb_atproto_queue`) exist after migration

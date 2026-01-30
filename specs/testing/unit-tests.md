@@ -4,7 +4,6 @@
 - **Purpose**: Define unit test structure, mocking strategies, and test cases for individual components
 - **Framework**: PHPUnit 9.x
 - **Location**: `tests/unit/`
-- **Task**: phpbb-6my
 
 ## Acceptance Criteria
 - [ ] AC-1: All service interfaces have corresponding unit tests

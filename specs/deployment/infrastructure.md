@@ -5,7 +5,6 @@
 - **Location**: `docker/`, `.env`, deployment configuration files
 - **Dependencies**: Docker, Docker Compose
 - **Dependents**: All components (phpbb, sync-service, mysql)
-- **Task**: phpbb-ko7
 
 ## Acceptance Criteria
 - [ ] AC-1: All services start successfully with `docker-compose up -d`

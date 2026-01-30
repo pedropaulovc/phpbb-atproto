@@ -5,7 +5,6 @@
 - **Location**: `ext/phpbb/atproto/event/`
 - **Dependencies**: auth-provider (for tokens), migrations
 - **Dependents**: None (end of write path)
-- **Task**: phpbb-042
 
 ## Acceptance Criteria
 - [ ] AC-1: Intercepts post creation via `core.posting_modify_submit_post_before`

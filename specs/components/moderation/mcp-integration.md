@@ -5,7 +5,6 @@
 - **Location**: `ext/phpbb/atproto/mcp/`
 - **Dependencies**: label-display, ozone-setup, auth-provider
 - **Dependents**: None (end of moderation path)
-- **Task**: phpbb-5t5
 
 ## Acceptance Criteria
 - [ ] AC-1: Moderators can emit `!hide` label via standard "Disapprove" action

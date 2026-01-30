@@ -5,7 +5,6 @@
 - **Location**: `sync-service/src/Firehose/`
 - **Dependencies**: firehose-client
 - **Dependents**: database-writer, forum-config-sync
-- **Task**: phpbb-rfm
 
 ## Acceptance Criteria
 - [ ] AC-1: Filters events to only process `net.vza.forum.*` collections

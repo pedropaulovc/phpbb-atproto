@@ -5,7 +5,6 @@
 - **Location**: `sync-service/src/Labels/`
 - **Dependencies**: firehose-client, ozone-setup
 - **Dependents**: database-writer (for label storage), label-display
-- **Task**: phpbb-0jq
 
 ## Acceptance Criteria
 - [ ] AC-1: Subscribes to `com.atproto.label.subscribeLabels` WebSocket endpoint
