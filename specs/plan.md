@@ -143,7 +143,7 @@ Document phpBB's schema and classify data by ownership pattern for AT Protocol m
 
 ---
 
-## Phase 2: AT Protocol Mapping
+## Phase 2: AT Protocol Mapping ✓
 
 ### Objective
 Design lexicons and specify how phpBB data maps to AT Protocol primitives.
@@ -291,11 +291,18 @@ MODERATOR ACTIONS MAPPING:
 ```
 
 ### Deliverables
-- [ ] `lexicons/net.vza.forum.post.json`
-- [ ] `lexicons/net.vza.forum.board.json`
-- [ ] `lexicons/net.vza.forum.config.json`
-- [ ] `docs/data-mapping.md`
-- [ ] `docs/moderation-flow.md`
+- [x] `lexicons/net.vza.forum.post.json`
+- [x] `lexicons/net.vza.forum.board.json`
+- [x] `lexicons/net.vza.forum.config.json`
+- [x] `lexicons/net.vza.forum.acl.json`
+- [x] `lexicons/net.vza.forum.settings.json`
+- [x] `lexicons/net.vza.forum.vote.json`
+- [x] `lexicons/net.vza.forum.reaction.json`
+- [x] `lexicons/net.vza.forum.subscription.json`
+- [x] `lexicons/net.vza.forum.bookmark.json`
+- [x] `lexicons/net.vza.forum.membership.json`
+- [x] `docs/data-mapping.md`
+- [x] `docs/moderation-flow.md`
 
 ---
 
@@ -471,7 +478,7 @@ specs/
 ## Next Steps
 
 1. ✓ **Phase 1 execution**: Set up Docker environment, explore phpBB schema hands-on
-2. [ ] **Create lexicon drafts**: Define `net.vza.forum.*` schemas
+2. ✓ **Create lexicon drafts**: Define `net.vza.forum.*` schemas
 3. [ ] **Prototype auth flow**: Test AT Protocol authentication with phpBB
 4. [ ] **Set up forum PDS**: Create PDS for forum config storage
 5. [ ] **Document findings**: Commit exploration results to repo

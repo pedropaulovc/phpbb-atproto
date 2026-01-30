@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "net.vza.forum.reaction",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A reaction/like on a post. Stored on the user's PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "#strongRef",
+            "description": "Reference to the post being reacted to."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["like", "thanks", "agree", "disagree", "funny", "informative"],
+            "default": "like",
+            "description": "Type of reaction."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the reaction was created."
+          }
+        }
+      }
+    },
+    "strongRef": {
+      "type": "object",
+      "description": "A strong reference to a record.",
+      "required": ["uri", "cid"],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "cid": {
+          "type": "string",
+          "format": "cid"
+        }
+      }
+    }
+  }
+}
