@@ -5,20 +5,20 @@ This project uses **bd** (beads) for issue tracking.
 ## Essential Commands
 
 ```bash
-npm run bd -- ready                              # See tasks ready to work on
-npm run bd -- create "Task title" -p 0           # Create priority-0 task
-npm run bd -- show <id>                          # View task details
-npm run bd -- update <id> --status in_progress   # Start working on task
-npm run bd -- close <id>                         # Mark task complete
-npm run bd -- dep add <child> <parent>           # Add dependency
-npm run bd -- sync                               # Sync with git
+bd ready                              # See tasks ready to work on
+bd create "Task title" -p 0           # Create priority-0 task
+bd show <id>                          # View task details
+bd update <id> --status in_progress   # Start working on task
+bd close <id>                         # Mark task complete
+bd dep add <child> <parent>           # Add dependency
+bd sync                               # Sync with git
 ```
 
 ## Workflow
 
-1. Before starting work: `npm run bd -- ready` to find available tasks
-2. Claim a task: `npm run bd -- update <id> --status in_progress`
-3. When done: `npm run bd -- close <id>`
+1. Before starting work: `bd ready` to find available tasks
+2. Claim a task: `bd update <id> --status in_progress`
+3. When done: `bd close <id>`
 4. Create follow-up tasks for remaining work
 
 ## Session Completion (Landing the Plane)
@@ -31,7 +31,7 @@ npm run bd -- sync                               # Sync with git
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   npm run bd -- sync
+   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
