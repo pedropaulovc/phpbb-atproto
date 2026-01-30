@@ -392,9 +392,9 @@ phpbb_atproto_queue   -- Retry queue for failed writes
 - Supervisor/systemd to manage Sync Service
 
 ### Deliverables
-- [ ] `docs/architecture.md` - Component diagrams
-- [ ] `docs/api-contracts.md` - Interface definitions
-- [ ] `docs/risks.md` - Risk assessment
+- [x] `docs/architecture.md` - Component diagrams
+- [x] `docs/api-contracts.md` - Interface definitions
+- [x] `docs/risks.md` - Risk assessment
 
 ---
 
