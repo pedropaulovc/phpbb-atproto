@@ -154,17 +154,18 @@ Design lexicons and specify how phpBB data maps to AT Protocol primitives.
 
 ```
 # User PDS collections
-net.vza.forum.post       - Forum posts (text, reply refs, embeds)
-net.vza.forum.topic      - Topic metadata (title, forum ref, first post ref)
-net.vza.forum.reaction   - Likes/reactions to posts
-net.vza.forum.settings   - User's forum preferences
+net.vza.forum.post         - Forum posts (first post includes topic metadata)
+net.vza.forum.reaction     - Likes/reactions to posts
+net.vza.forum.vote         - Poll votes
+net.vza.forum.settings     - User's forum preferences
+net.vza.forum.subscription - Topic/forum notification subscriptions
+net.vza.forum.bookmark     - Bookmarked topics
 
 # Forum PDS collections
-net.vza.forum.category   - Forum categories
-net.vza.forum.board      - Individual forums/subforums
-net.vza.forum.config     - Global forum configuration
-net.vza.forum.acl        - Permission templates
-net.vza.forum.rank       - User rank definitions
+net.vza.forum.board        - Forums, subforums, and categories (via boardType)
+net.vza.forum.config       - Global forum configuration (includes ranks)
+net.vza.forum.acl          - Permission templates and group definitions
+net.vza.forum.membership   - User group memberships
 ```
 
 ### Post Record Structure
