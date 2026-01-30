@@ -370,12 +370,20 @@ sync-service/
 
 **Custom tables**:
 ```sql
-phpbb_atproto_users   -- DID ↔ user_id mapping + tokens
-phpbb_atproto_posts   -- AT URI ↔ post_id mapping
-phpbb_atproto_labels  -- Cached moderation labels
+phpbb_atproto_users   -- DID ↔ user_id mapping + encrypted tokens (with key rotation)
+phpbb_atproto_posts   -- AT URI ↔ post_id mapping + is_topic_starter flag
+phpbb_atproto_forums  -- AT URI ↔ forum_id mapping + mutable slug
+phpbb_atproto_labels  -- Cached moderation labels (URI-only matching for sticky moderation)
 phpbb_atproto_cursors -- Firehose cursor tracking
 phpbb_atproto_queue   -- Retry queue for failed writes
 ```
+
+**Key design decisions**:
+- Topics represented by first post (no separate topic table)
+- Board URIs use TID keys; slugs are mutable fields
+- Labels match by URI only (sticky moderation)
+- Token encryption supports key rotation
+- Idempotent inserts handle race conditions
 
 ### Infrastructure Requirements
 - MySQL (existing phpBB)

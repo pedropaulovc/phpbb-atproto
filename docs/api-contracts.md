@@ -45,6 +45,7 @@ CREATE TABLE phpbb_atproto_posts (
     at_uri          VARCHAR(512) NOT NULL,
     at_cid          VARCHAR(64) NOT NULL,
     author_did      VARCHAR(255) NOT NULL,
+    is_topic_starter TINYINT(1) DEFAULT 0,
     sync_status     ENUM('synced', 'pending', 'failed') DEFAULT 'synced',
     created_at      INT UNSIGNED NOT NULL,
     updated_at      INT UNSIGNED NOT NULL,
@@ -53,44 +54,38 @@ CREATE TABLE phpbb_atproto_posts (
     UNIQUE KEY idx_at_uri (at_uri),
     KEY idx_author_did (author_did),
     KEY idx_sync_status (sync_status),
-    KEY idx_at_cid (at_cid)
+    KEY idx_at_cid (at_cid),
+    KEY idx_topic_starter (is_topic_starter)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-### phpbb_atproto_topics
-
-Maps AT URIs to phpBB topic IDs (first post URI represents topic).
-
-```sql
-CREATE TABLE phpbb_atproto_topics (
-    topic_id        INT UNSIGNED NOT NULL,
-    at_uri          VARCHAR(512) NOT NULL,
-    at_cid          VARCHAR(64) NOT NULL,
-    author_did      VARCHAR(255) NOT NULL,
-    created_at      INT UNSIGNED NOT NULL,
-    updated_at      INT UNSIGNED NOT NULL,
-
-    PRIMARY KEY (topic_id),
-    UNIQUE KEY idx_at_uri (at_uri),
-    KEY idx_author_did (author_did)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
+**Notes**:
+- `is_topic_starter = 1` indicates this post creates a topic (has `subject` field)
+- Topic AT URI = first post's AT URI (no separate topic records)
+- Topic title lives in the first post's `subject` field
 
 ### phpbb_atproto_forums
 
-Maps AT URIs to phpBB forum IDs.
+Maps AT URIs to phpBB forum IDs with slug-based routing.
 
 ```sql
 CREATE TABLE phpbb_atproto_forums (
     forum_id        INT UNSIGNED NOT NULL,
     at_uri          VARCHAR(512) NOT NULL,
     at_cid          VARCHAR(64) NOT NULL,
+    slug            VARCHAR(255) NOT NULL,
     updated_at      INT UNSIGNED NOT NULL,
 
     PRIMARY KEY (forum_id),
-    UNIQUE KEY idx_at_uri (at_uri)
+    UNIQUE KEY idx_at_uri (at_uri),
+    KEY idx_slug (slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
+
+**Notes**:
+- `slug` is mutable (updated when forum is renamed)
+- AT URI uses TID key (immutable) for stable identity
+- Slug enables human-readable URL routing in phpBB
 
 ### phpbb_atproto_labels
 
@@ -487,28 +482,48 @@ interface ForumPdsClientInterface
     public function updateConfig(array $data): void;
 
     /**
-     * Get a board/forum definition.
+     * Get a board/forum definition by AT URI.
      *
-     * @param string $slug Board slug (record key)
-     * @return BoardRecord Board definition
+     * @param string $atUri Board AT URI (at://did/net.vza.forum.board/tid)
+     * @return BoardRecord Board definition with uri and cid
      * @throws RecordNotFoundException When board doesn't exist
      */
-    public function getBoard(string $slug): BoardRecord;
+    public function getBoard(string $atUri): BoardRecord;
 
     /**
-     * Create or update a board definition.
+     * Get a board/forum definition by slug.
      *
-     * @param string $slug Board slug (record key)
-     * @param array $data Board data matching net.vza.forum.board schema
+     * @param string $slug Board slug for routing lookup
+     * @return BoardRecord Board definition with uri and cid
+     * @throws RecordNotFoundException When board doesn't exist
      */
-    public function updateBoard(string $slug, array $data): void;
+    public function getBoardBySlug(string $slug): BoardRecord;
+
+    /**
+     * Create a new board definition. Returns generated AT URI.
+     *
+     * @param array $data Board data matching net.vza.forum.board schema
+     * @return array{uri: string, cid: string} Created record reference
+     */
+    public function createBoard(array $data): array;
+
+    /**
+     * Update a board definition with optimistic locking.
+     *
+     * @param string $atUri Board AT URI
+     * @param array $data Board data matching net.vza.forum.board schema
+     * @param string|null $expectedCid Expected CID for conflict detection (null to skip)
+     * @return array{uri: string, cid: string} Updated record reference
+     * @throws ConflictException When expectedCid doesn't match (concurrent modification)
+     */
+    public function updateBoard(string $atUri, array $data, ?string $expectedCid = null): array;
 
     /**
      * Delete a board.
      *
-     * @param string $slug Board slug
+     * @param string $atUri Board AT URI
      */
-    public function deleteBoard(string $slug): void;
+    public function deleteBoard(string $atUri): void;
 
     /**
      * Get ACL/permissions record.
@@ -1070,7 +1085,8 @@ services:
       FORUM_PDS_URL: ${FORUM_PDS_URL}
       FORUM_PDS_ACCESS_TOKEN: ${FORUM_PDS_ACCESS_TOKEN}
       LABELER_DID: ${LABELER_DID:-${FORUM_DID}}
-      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
+      TOKEN_ENCRYPTION_KEYS: ${TOKEN_ENCRYPTION_KEYS}
+      TOKEN_ENCRYPTION_KEY_VERSION: ${TOKEN_ENCRYPTION_KEY_VERSION}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       mysql:
@@ -1112,15 +1128,23 @@ FORUM_PDS_ACCESS_TOKEN=your_forum_pds_access_token
 # Labeler (defaults to FORUM_DID if not set)
 LABELER_DID=
 
-# Security
-# Generate with: php -r "echo base64_encode(random_bytes(32));"
-TOKEN_ENCRYPTION_KEY=base64_encoded_32_byte_key
+# Security - Token Encryption with Key Rotation
+# Generate keys with: php -r "echo base64_encode(random_bytes(32));"
+# Format: JSON object mapping version to base64-encoded 32-byte keys
+TOKEN_ENCRYPTION_KEYS='{"v1":"base64_encoded_32_byte_key"}'
+TOKEN_ENCRYPTION_KEY_VERSION=v1
+# To rotate: add new version to KEYS, update VERSION, old keys decrypt old tokens
 
 # Logging
 LOG_LEVEL=info
 ```
 
 ### Health Check Script
+
+The health check validates multiple aspects of Sync Service health:
+1. **Cursor freshness** - firehose is receiving messages
+2. **Connection state** - WebSocket is connected
+3. **State file freshness** - daemon process is alive
 
 ```php
 <?php
@@ -1136,6 +1160,40 @@ foreach ($requiredEnv as $var) {
     }
 }
 
+$healthy = true;
+$reasons = [];
+$stateFile = '/tmp/sync-service-state.json';
+
+// Check 1: State file freshness (daemon is running and updating state)
+if (file_exists($stateFile)) {
+    $stateAge = time() - filemtime($stateFile);
+    if ($stateAge > 60) {
+        $healthy = false;
+        $reasons[] = "State file stale ({$stateAge}s) - daemon may be dead";
+    }
+
+    $state = json_decode(file_get_contents($stateFile), true);
+    if ($state) {
+        // Check 2: WebSocket connection state
+        if (!($state['websocket_connected'] ?? false)) {
+            $healthy = false;
+            $reasons[] = 'WebSocket disconnected';
+        }
+
+        // Check 3: Last message received
+        $lastMsg = $state['last_message_at'] ?? 0;
+        $msgAge = time() - $lastMsg;
+        if ($msgAge > 300) {
+            $healthy = false;
+            $reasons[] = "No messages received in {$msgAge}s";
+        }
+    }
+} else {
+    // No state file yet - check database cursor as fallback
+    echo "No state file found, checking database cursor\n";
+}
+
+// Check 4: Database cursor freshness (authoritative check)
 try {
     $pdo = new PDO(
         sprintf(
@@ -1148,7 +1206,6 @@ try {
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
 
-    // Check cursor freshness
     $stmt = $pdo->query(
         "SELECT cursor_value, updated_at
          FROM phpbb_atproto_cursors
@@ -1157,24 +1214,62 @@ try {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$row) {
-        // No cursor yet - might be first run
+        // No cursor yet - might be first run, allow it
         echo "No cursor found (first run?)\n";
-        exit(0);
+    } else {
+        $staleness = time() - (int)$row['updated_at'];
+        $maxStaleness = 300; // 5 minutes
+
+        if ($staleness > $maxStaleness) {
+            $healthy = false;
+            $reasons[] = "Cursor stale: {$staleness}s (max: {$maxStaleness}s)";
+        }
     }
-
-    $staleness = time() - (int)$row['updated_at'];
-    $maxStaleness = 300; // 5 minutes
-
-    if ($staleness > $maxStaleness) {
-        fwrite(STDERR, "Cursor stale: {$staleness}s (max: {$maxStaleness}s)\n");
-        exit(1);
-    }
-
-    echo "Healthy: cursor updated {$staleness}s ago, position {$row['cursor_value']}\n";
-    exit(0);
-
 } catch (PDOException $e) {
-    fwrite(STDERR, "Database error: " . $e->getMessage() . "\n");
+    $healthy = false;
+    $reasons[] = "Database error: " . $e->getMessage();
+}
+
+if ($healthy) {
+    echo "Healthy: all checks passed\n";
+    exit(0);
+} else {
+    fwrite(STDERR, "Unhealthy: " . implode('; ', $reasons) . "\n");
     exit(1);
+}
+```
+
+### Connection State Writer
+
+The Sync Service daemon should write state periodically:
+
+```php
+<?php
+// In sync daemon main loop
+
+class ConnectionStateWriter
+{
+    private string $stateFile = '/tmp/sync-service-state.json';
+    private int $lastWrite = 0;
+    private int $writeInterval = 10; // seconds
+
+    public function update(bool $connected, int $cursor, int $messagesProcessed): void
+    {
+        if (time() - $this->lastWrite < $this->writeInterval) {
+            return;
+        }
+
+        $state = [
+            'websocket_connected' => $connected,
+            'connection_established_at' => $this->connectedAt ?? time(),
+            'last_message_at' => time(),
+            'cursor' => $cursor,
+            'messages_processed' => $messagesProcessed,
+            'pid' => getmypid(),
+        ];
+
+        file_put_contents($this->stateFile, json_encode($state));
+        $this->lastWrite = time();
+    }
 }
 ```

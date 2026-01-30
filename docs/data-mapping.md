@@ -140,7 +140,7 @@ Polls are embedded in the first post:
 
 | phpBB Column | AT Protocol Field | Notes |
 |--------------|-------------------|-------|
-| `forum_id` | Record key | Slug-based key |
+| `forum_id` | Record key (TID) | Mapped in `phpbb_atproto_forums` |
 | `forum_name` | `name` | Display name |
 | `forum_desc` | `description` | BBCode allowed |
 | `forum_type` | `boardType` | 0=category, 1=forum, 2=link |
@@ -159,20 +159,27 @@ Polls are embedded in the first post:
 
 ### Record Key Strategy
 
-Boards use **slug-based keys** for human-readable URIs:
-- Key: URL-friendly slug derived from forum name
-- Example: `general-discussion`
+Boards use **TID (Timestamp ID)** format for record keys:
+- Format: Base32-encoded timestamp + random suffix
+- Example: `3jui7kd2zoik2`
+- Ensures stable identity even when board is renamed
+
+The `slug` field within the record provides human-readable routing:
+- Slug is mutable and can be updated on rename
+- phpBB maintains a `slug → AT URI` lookup table for URL routing
 
 ### AT URI Format
 
 ```
-at://{forum-did}/net.vza.forum.board/{slug}
+at://{forum-did}/net.vza.forum.board/{tid}
 ```
 
 Example:
 ```
-at://did:plc:forum/net.vza.forum.board/general-discussion
+at://did:plc:forum/net.vza.forum.board/3jui7kd2zoik2
 ```
+
+The slug (`general-discussion`) lives in the record's `slug` field, not the URI.
 
 ### Example Board Record
 
@@ -185,7 +192,7 @@ at://did:plc:forum/net.vza.forum.board/general-discussion
   "boardType": "forum",
   "order": 1,
   "parent": {
-    "uri": "at://did:plc:forum/net.vza.forum.board/main-category",
+    "uri": "at://did:plc:forum/net.vza.forum.board/3jui7kd0abcde",
     "cid": "bafyreig..."
   },
   "settings": {
@@ -374,7 +381,7 @@ Settings: `yes` | `no` | `never`
   ],
   "forumPermissions": [
     {
-      "forumUri": "at://did:plc:forum/net.vza.forum.board/general",
+      "forumUri": "at://did:plc:forum/net.vza.forum.board/3jui7kd2zoik2",
       "groupId": "moderators",
       "roleId": "forum-moderator"
     }
@@ -403,7 +410,7 @@ Maps DIDs to phpBB user IDs and stores OAuth tokens.
 
 ### phpbb_atproto_posts
 
-Maps AT URIs to phpBB post IDs.
+Maps AT URIs to phpBB post IDs. Topics are represented by their first post (no separate topic table).
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -411,20 +418,26 @@ Maps AT URIs to phpBB post IDs.
 | `at_uri` | varchar(512) | AT Protocol URI |
 | `at_cid` | varchar(64) | Content identifier |
 | `author_did` | varchar(255) | Author's DID |
+| `is_topic_starter` | tinyint | 1 if this post creates a topic |
 | `sync_status` | enum | 'synced', 'pending', 'failed' |
 | `created_at` | int | Record creation time |
 | `updated_at` | int | Last update time |
 
+**Note**: Topics don't have separate AT Protocol records. The first post's AT URI represents the topic, and the topic title lives in the first post's `subject` field.
+
 ### phpbb_atproto_forums
 
-Maps AT URIs to phpBB forum IDs.
+Maps AT URIs to phpBB forum IDs with slug-based routing.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `forum_id` | int | phpBB forum ID |
-| `at_uri` | varchar(512) | AT Protocol URI |
+| `at_uri` | varchar(512) | AT Protocol URI (uses TID key) |
 | `at_cid` | varchar(64) | Content identifier |
+| `slug` | varchar(255) | URL-friendly slug (mutable) |
 | `updated_at` | int | Last sync time |
+
+**Note**: The AT URI uses a TID key (immutable), while the slug is a mutable field for human-readable URL routing.
 
 ### phpbb_atproto_labels
 

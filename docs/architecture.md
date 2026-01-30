@@ -343,14 +343,17 @@ A dedicated PDS account controlled by forum operators.
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 3. Write to forum PDS                                           │
+│ 3. Write to forum PDS (with optimistic locking)                 │
 │    POST /xrpc/com.atproto.repo.putRecord                        │
 │    {                                                            │
 │      repo: forum-did,                                           │
 │      collection: "net.vza.forum.board",                         │
-│      rkey: board-slug,                                          │
-│      record: { name, description, settings, ... }               │
+│      rkey: <tid>,  // TID key, not slug                         │
+│      record: { name, slug, description, settings, ... },        │
+│      swapRecord: <expected-cid>  // Conflict detection          │
 │    }                                                            │
+│                                                                 │
+│    On CID mismatch: present conflict UI to admin                │
 └─────────────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -565,6 +568,12 @@ For high availability or geographically distributed forums.
 - Firehose propagates to all instances
 - Forum config changes from any admin propagate to all
 
+**Conflict Resolution**:
+- Admin config changes use `swapRecord` with expected CID
+- On CID mismatch (concurrent edit), admin sees conflict UI
+- Must manually resolve by reviewing both versions
+- Prevents silent overwrites in multi-admin scenarios
+
 ---
 
 ## Technology Stack
@@ -688,7 +697,8 @@ services:
       - RELAY_URL=wss://bsky.network/xrpc/com.atproto.sync.subscribeRepos
       - FORUM_DID=${FORUM_DID}
       - FORUM_PDS_URL=${FORUM_PDS_URL}
-      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY}
+      - TOKEN_ENCRYPTION_KEYS=${TOKEN_ENCRYPTION_KEYS}
+      - TOKEN_ENCRYPTION_KEY_VERSION=${TOKEN_ENCRYPTION_KEY_VERSION}
     depends_on:
       - mysql
     deploy:
@@ -715,45 +725,50 @@ volumes:
 | `RELAY_URL` | Firehose WebSocket URL | Yes |
 | `FORUM_DID` | Forum PDS account DID | Yes |
 | `FORUM_PDS_URL` | Forum PDS XRPC endpoint | Yes |
-| `TOKEN_ENCRYPTION_KEY` | 32-byte key for token encryption | Yes |
+| `TOKEN_ENCRYPTION_KEYS` | JSON object of versioned encryption keys | Yes |
+| `TOKEN_ENCRYPTION_KEY_VERSION` | Current key version to use | Yes |
 | `LABELER_DID` | Ozone labeler DID (if different from forum) | No |
 | `LOG_LEVEL` | Logging verbosity (debug, info, warn, error) | No |
 
 ### Health Check Endpoint
 
-The Sync Service exposes health status via cursor freshness:
+The Sync Service health check validates multiple aspects:
+
+1. **State file freshness** - daemon is alive and updating state
+2. **WebSocket connection** - firehose is connected
+3. **Message recency** - messages are being received
+4. **Cursor freshness** - database cursor is updating
+
+The daemon writes state to `/tmp/sync-service-state.json` periodically:
+
+```php
+// Daemon writes state every 10 seconds
+$state = [
+    'websocket_connected' => $client->isConnected(),
+    'last_message_at' => time(),
+    'cursor' => $cursor->getValue(),
+    'messages_processed' => $stats->getCount(),
+    'pid' => getmypid(),
+];
+file_put_contents('/tmp/sync-service-state.json', json_encode($state));
+```
+
+Health check reads state file + validates database cursor:
 
 ```php
 // bin/healthcheck.php
-<?php
-
-require __DIR__ . '/../vendor/autoload.php';
-
-$pdo = new PDO(
-    sprintf('mysql:host=%s;dbname=%s', getenv('MYSQL_HOST'), getenv('MYSQL_DATABASE')),
-    getenv('MYSQL_USER'),
-    getenv('MYSQL_PASSWORD')
-);
-
-$stmt = $pdo->query("SELECT updated_at FROM phpbb_atproto_cursors WHERE service = 'firehose'");
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$row) {
-    echo "No cursor found\n";
-    exit(1);
-}
-
-$staleness = time() - $row['updated_at'];
-$maxStaleness = 300; // 5 minutes
-
-if ($staleness > $maxStaleness) {
-    echo "Cursor stale: {$staleness}s\n";
-    exit(1);
-}
-
-echo "Healthy: cursor {$staleness}s old\n";
-exit(0);
+// Check 1: State file freshness (daemon alive)
+// Check 2: WebSocket connected (from state)
+// Check 3: Messages received recently (from state)
+// Check 4: Database cursor freshness (authoritative)
+// See api-contracts.md for full implementation
 ```
+
+This multi-layered approach catches:
+- Daemon crashes (state file stale)
+- Connection drops (websocket_connected = false)
+- Firehose stalls (no messages)
+- Database issues (cursor not updating)
 
 ### Graceful Shutdown
 

@@ -455,10 +455,20 @@ Moderators need Ozone accounts with appropriate permissions:
 
 ## Label Queries
 
+### Sticky Moderation
+
+Labels are enforced by **URI only** (not CID) in the local cache. This provides "sticky moderation" where labels persist across post edits:
+
+- When a moderator hides a post, the `!hide` label applies to the AT URI
+- If the user edits their post (changing the CID), the label still applies
+- This prevents moderation bypass via editing
+- The `subject_cid` column is informational only, not used for filtering
+
 ### Check if Post is Hidden
 
 ```php
 function is_post_hidden($at_uri) {
+    // Note: matches on URI only, not CID (sticky moderation)
     $sql = "SELECT COUNT(*) as cnt
             FROM phpbb_atproto_labels
             WHERE subject_uri = ?
@@ -487,12 +497,13 @@ function get_post_labels($at_uri) {
 
 ```php
 // Modified viewtopic query
+// Note: labels match on URI only (sticky moderation) - CID not checked
 $sql = "SELECT p.*,
                GROUP_CONCAT(l.label_value) as labels
         FROM phpbb_posts p
         JOIN phpbb_atproto_posts ap ON p.post_id = ap.post_id
         LEFT JOIN phpbb_atproto_labels l
-            ON ap.at_uri = l.subject_uri
+            ON ap.at_uri = l.subject_uri  -- URI only, not CID
             AND l.negated = 0
         WHERE p.topic_id = ?
         GROUP BY p.post_id

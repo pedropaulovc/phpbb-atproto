@@ -100,19 +100,72 @@ This document identifies risks in the phpBB AT Protocol integration and provides
 
 **Detection**: Scheduled reconciliation reports mismatches; alert on count threshold.
 
-### D2: CID Mismatch After Record Updates
+### D2: CID Mismatch After Record Updates / Moderation Bypass
 
-**Description**: When a user edits a post, the CID changes. If the local cache has a stale CID, operations fail.
+**Description**: When a user edits a post, the CID changes. Labels reference specific CIDs, so editing a post could theoretically bypass moderation.
 
-**Impact**: Moderation actions may target wrong record version; broken strongRefs.
+**Impact**: Moderation labels may not apply to edited content; potential moderation bypass.
 
-**Mitigation**:
+**Mitigation - Sticky Moderation**:
+Labels are enforced by **URI only** (not CID) in the local cache. This provides "sticky moderation" where labels persist across edits:
+
+1. `phpbb_atproto_labels.subject_cid` is informational only, not used for filtering
+2. Label queries match on `subject_uri` without CID check
+3. When emitting labels via Ozone, include CID for AT Protocol compliance
+4. Local enforcement uses URI-only matching
+
+```sql
+-- Label filtering ignores CID
+SELECT p.* FROM phpbb_posts p
+JOIN phpbb_atproto_posts ap ON p.post_id = ap.post_id
+LEFT JOIN phpbb_atproto_labels l
+    ON l.subject_uri = ap.at_uri  -- URI only, no CID check
+    AND l.label_value = '!hide'
+    AND l.negated = 0
+WHERE l.id IS NULL;
+```
+
+**For record operations** (not moderation):
 1. Always fetch current CID before operations requiring strongRef
 2. Update `at_cid` in mapping table after every successful write
 3. Firehose update events include new CID - Sync Service updates mapping
-4. For moderation: fetch current state from source before emitting label
 
 **Detection**: Log CID mismatch errors; track frequency by record type.
+
+### D2a: Post Creation Race Condition
+
+**Description**: When a user creates a post via phpBB, both the extension and Sync Service may try to insert the same post into the local cache. The extension writes to PDS then inserts locally, but the firehose event may arrive before the local insert completes.
+
+**Impact**: Database errors, duplicate key violations, potential data corruption.
+
+**Mitigation - Idempotent Inserts**:
+1. Sync Service uses `INSERT IGNORE` or `ON DUPLICATE KEY UPDATE` for all operations
+2. Extension checks for existing AT URI before inserting
+3. Sync Service is authoritative; extension creates optimistic cache
+
+```sql
+-- Sync Service uses idempotent insert
+INSERT INTO phpbb_atproto_posts (post_id, at_uri, at_cid, author_did, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+    at_cid = VALUES(at_cid),
+    sync_status = 'synced',
+    updated_at = VALUES(updated_at);
+```
+
+```php
+// Extension checks before insert
+$existing = $this->uri_mapper->findByUri($atUri);
+if ($existing) {
+    // Sync Service already processed - just link to local post
+    $this->uri_mapper->updateLocalId($atUri, $postId);
+} else {
+    // We're first - insert optimistic mapping
+    $this->uri_mapper->insert($postId, $atUri, $cid, $authorDid);
+}
+```
+
+**Detection**: Monitor duplicate key errors; should be rare with proper idempotency.
 
 ### D3: Concurrent Edits from Multiple Clients
 
@@ -127,6 +180,62 @@ This document identifies risks in the phpBB AT Protocol integration and provides
 4. Accept that AT Protocol has last-write-wins semantics at PDS level
 
 **Detection**: Track `swapRecord` failures; alert on spike.
+
+### D3a: Multi-Instance Admin Config Conflicts
+
+**Description**: In multi-instance deployments, two admins on different instances may simultaneously modify forum configuration (boards, ACL, settings). Without coordination, one admin's changes can silently overwrite the other's.
+
+**Impact**: Admin changes lost without notification; inconsistent forum state.
+
+**Mitigation - Optimistic Locking**:
+1. All forum config writes use `swapRecord` with expected CID
+2. On CID mismatch (concurrent modification), fetch latest state
+3. Present conflict UI showing both versions
+4. Admin must manually resolve conflict
+
+```php
+class ForumPdsClient
+{
+    public function updateConfig(string $rkey, array $newData): array
+    {
+        // 1. Fetch current state
+        $current = $this->getRecord('net.vza.forum.config', $rkey);
+
+        // 2. Attempt write with expected CID
+        try {
+            return $this->pds->putRecord(
+                'net.vza.forum.config',
+                $rkey,
+                $newData,
+                swapRecord: $current['cid']
+            );
+        } catch (InvalidSwapException $e) {
+            // 3. Conflict detected
+            $latest = $this->getRecord('net.vza.forum.config', $rkey);
+            throw new ConflictException(
+                "Configuration modified by another admin",
+                latest: $latest,
+                attempted: $newData
+            );
+        }
+    }
+}
+```
+
+**ACP Integration**:
+```php
+try {
+    $result = $this->forum_pds->updateConfig('self', $newConfig);
+    return $this->success("Configuration saved");
+} catch (ConflictException $e) {
+    return $this->render('conflict_resolution', [
+        'latest' => $e->getLatest(),
+        'attempted' => $e->getAttempted(),
+    ]);
+}
+```
+
+**Detection**: Track conflict frequency; alert if admins frequently conflict (may indicate process issue).
 
 ### D4: Topic Moves Across User Repositories
 
@@ -155,29 +264,66 @@ This document identifies risks in the phpBB AT Protocol integration and provides
 
 **Mitigation**:
 1. Encrypt tokens at rest using XChaCha20-Poly1305 (libsodium)
-2. Encryption key stored in environment variable, not database
+2. Encryption keys stored in environment variable with versioning for rotation
 3. Never log token values
 4. Tokens have server-side expiry tracked in `token_expires_at`
 5. Clear tokens on user logout/disconnect
-6. Database column stores: `nonce || ciphertext || tag`
+6. Database column stores: `version:base64(nonce || ciphertext || tag)`
+
+**Key Rotation Strategy**:
+
+Environment variables support multiple versioned keys:
+```bash
+# JSON object mapping version to base64-encoded 32-byte keys
+TOKEN_ENCRYPTION_KEYS='{"v1":"old_key_base64","v2":"current_key_base64"}'
+TOKEN_ENCRYPTION_KEY_VERSION='v2'
+```
 
 **Implementation**:
 ```php
-// Encryption
-$nonce = random_bytes(SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
-$ciphertext = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
-    $token, '', $nonce, $key
-);
-$stored = base64_encode($nonce . $ciphertext);
+class TokenEncryption
+{
+    private array $keys;
+    private string $currentVersion;
 
-// Decryption
-$decoded = base64_decode($stored);
-$nonce = substr($decoded, 0, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
-$ciphertext = substr($decoded, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
-$token = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
-    $ciphertext, '', $nonce, $key
-);
+    public function __construct()
+    {
+        $this->keys = json_decode(getenv('TOKEN_ENCRYPTION_KEYS'), true);
+        $this->currentVersion = getenv('TOKEN_ENCRYPTION_KEY_VERSION');
+    }
+
+    public function encrypt(string $token): string
+    {
+        $key = base64_decode($this->keys[$this->currentVersion]);
+        $nonce = random_bytes(SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
+        $ciphertext = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
+            $token, $this->currentVersion, $nonce, $key
+        );
+        // Format: version:base64(nonce || ciphertext)
+        return $this->currentVersion . ':' . base64_encode($nonce . $ciphertext);
+    }
+
+    public function decrypt(string $stored): string
+    {
+        [$version, $payload] = explode(':', $stored, 2);
+        $key = base64_decode($this->keys[$version]);
+        $decoded = base64_decode($payload);
+        $nonce = substr($decoded, 0, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
+        $ciphertext = substr($decoded, SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES);
+        return sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
+            $ciphertext, $version, $nonce, $key
+        );
+    }
+}
 ```
+
+**Key Rotation Procedure**:
+1. Generate new key: `php -r "echo base64_encode(random_bytes(32));"`
+2. Add new version to `TOKEN_ENCRYPTION_KEYS` JSON
+3. Update `TOKEN_ENCRYPTION_KEY_VERSION` to new version
+4. New tokens encrypted with new key; old tokens decrypt with old key
+5. Background job re-encrypts old tokens on next refresh
+6. After grace period (e.g., 30 days), remove old key version
 
 ### S2: DID Verification Spoofing
 
@@ -371,10 +517,12 @@ deploy:
 | T3 | Rate limiting | Backoff, caching | Rate limit responses |
 | T4 | WebSocket failures | Circuit breaker | Consecutive failures |
 | D1 | Cache divergence | Reconciliation job | Mismatch count |
-| D2 | CID mismatch | Fresh CID fetch | Mismatch errors |
+| D2 | CID mismatch / mod bypass | Sticky moderation (URI-only labels) | Mismatch errors |
+| D2a | Post creation race | Idempotent inserts | Duplicate key errors |
 | D3 | Concurrent edits | swapRecord | Swap failures |
+| D3a | Multi-instance config conflicts | Optimistic locking + conflict UI | Conflict frequency |
 | D4 | Topic moves | Soft redirects | Orphaned posts |
-| S1 | Token storage | XChaCha20 encryption | N/A |
+| S1 | Token storage | XChaCha20 + key rotation | N/A |
 | S2 | DID spoofing | Resolution verification | Verification failures |
 | S3 | Moderator impersonation | Dual auth requirement | Audit logs |
 | S4 | Token refresh race | Database locking | Refresh failures |
