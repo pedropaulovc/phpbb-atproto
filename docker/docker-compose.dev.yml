@@ -8,6 +8,11 @@ services:
       - ../ext:/var/www/html/ext/phpbb/atproto:cached
       - ../tests:/var/www/html/tests:cached
       - ../vendor:/var/www/html/vendor:cached
+      - ../composer.json:/var/www/html/composer.json:cached
+      - ../phpunit.xml:/var/www/html/phpunit.xml:cached
+      - ../phpunit.integration.xml:/var/www/html/phpunit.integration.xml:cached
+      - ../phpstan.neon:/var/www/html/phpstan.neon:cached
+      - ../.php-cs-fixer.php:/var/www/html/.php-cs-fixer.php:cached
     environment:
       XDEBUG_MODE: debug
       XDEBUG_CONFIG: client_host=host.docker.internal
