@@ -95,10 +95,10 @@ ATPROTO_DID_CACHE_TTL=3600        # DID document cache TTL
 | 9 | Auth Event Listener | [09-auth-event-listener.md](09-auth-event-listener.md) | ✅ |
 | 10 | Language Strings | [10-language-strings.md](10-language-strings.md) | ✅ |
 | 11 | Login Template | [11-login-template.md](11-login-template.md) | ✅ |
-| **12** | **DPoP Service** | [12-dpop-service.md](12-dpop-service.md) | 🆕 |
-| **13** | **DPoP Keypair Persistence** | [13-dpop-keypair-persistence.md](13-dpop-keypair-persistence.md) | 🆕 |
-| **14** | **Pushed Authorization Request (PAR)** | [14-pushed-authorization-request.md](14-pushed-authorization-request.md) | 🆕 |
-| **15** | **Client Metadata Endpoint** | [15-client-metadata-endpoint.md](15-client-metadata-endpoint.md) | 🆕 |
+| **12** | **DPoP Service** | [12-dpop-service.md](12-dpop-service.md) | ✅ |
+| **13** | **DPoP Keypair Persistence** | [13-dpop-keypair-persistence.md](13-dpop-keypair-persistence.md) | ✅ |
+| **14** | **Pushed Authorization Request (PAR)** | [14-pushed-authorization-request.md](14-pushed-authorization-request.md) | ✅ |
+| **15** | **Client Metadata Endpoint** | [15-client-metadata-endpoint.md](15-client-metadata-endpoint.md) | ✅ |
 | 16 | Integration Test | [16-integration-test.md](16-integration-test.md) | ⏳ |
 | 17 | Final Verification | [17-final-verification.md](17-final-verification.md) | ⏳ |
 
