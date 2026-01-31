@@ -1,47 +1,54 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking.
+## The Rule
 
-## Essential Commands
+**Invoke relevant skills BEFORE any response or action.** Even a 1% chance a skill might apply means you should invoke it.
 
-```bash
-bd ready                              # See tasks ready to work on
-bd create "Task title" -p 0           # Create priority-0 task
-bd show <id>                          # View task details
-bd update <id> --status in_progress   # Start working on task
-bd close <id>                         # Mark task complete
-bd dep add <child> <parent>           # Add dependency
-bd sync                               # Sync with git
-```
+## Red Flags
 
-## Workflow
+These thoughts mean STOP - you're rationalizing:
 
-1. Before starting work: `bd ready` to find available tasks
-2. Claim a task: `bd update <id> --status in_progress`
-3. When done: `bd close <id>`
-4. Create follow-up tasks for remaining work
+| Thought | Reality |
+|---------|---------|
+| "This is just a simple question" | Questions are tasks. Check for skills. |
+| "I need more context first" | Skill check comes BEFORE clarifying questions. |
+| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
+| "This doesn't need a formal skill" | If a skill exists, use it. |
+| "I'll just do this one thing first" | Check BEFORE doing anything. |
 
-## Session Completion (Landing the Plane)
+## Skill Priority
 
-**When ending a work session**, complete ALL steps below. Work is NOT complete until `git push` succeeds.
+When multiple skills could apply:
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. **Process skills first** (brainstorming, debugging) - these determine HOW to approach the task
+2. **Implementation skills second** (frontend-design, feature-dev) - these guide execution
+
+Examples:
+- "Let's build X" → brainstorming first, then implementation skills
+- "Fix this bug" → systematic-debugging first, then domain-specific skills
+
+## Key Skills
+
+| Skill | When to Use |
+|-------|-------------|
+| `brainstorming` | Before ANY creative work - features, components, modifications |
+| `systematic-debugging` | Before fixing ANY bug or unexpected behavior |
+| `test-driven-development` | Before implementing ANY feature or bugfix |
+| `writing-plans` | When you have specs/requirements for multi-step work |
+| `executing-plans` | When implementing from a written plan |
+| `verification-before-completion` | Before claiming work is done |
+
+## Session Completion
+
+**Work is NOT complete until `git push` succeeds.**
+
+1. Run quality gates (tests, linters) if code changed
+2. Commit all changes
+3. Push to remote:
    ```bash
-   git pull --rebase
-   bd sync
-   git push
+   git pull --rebase && git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+4. Verify - all changes committed AND pushed
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-
+**Never say "ready to push when you are" - YOU must push.**
