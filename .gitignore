@@ -54,4 +54,3 @@ docker/*.sql
 
 # Vagrant
 /.vagrant/
-Vagrantfile
