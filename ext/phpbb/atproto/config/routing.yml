@@ -7,3 +7,9 @@ phpbb_atproto_oauth_start:
     path: /atproto/login
     defaults:
         _controller: phpbb.atproto.controller.oauth:start
+
+phpbb_atproto_client_metadata:
+    path: /client-metadata.json
+    defaults:
+        _controller: phpbb.atproto.controller.client_metadata:handle
+    methods: [GET]

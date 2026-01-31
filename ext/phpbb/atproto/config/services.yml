@@ -49,6 +49,15 @@ services:
             - '@phpbb.atproto.token_manager'
             - '@user'
 
+    # Client metadata controller (AT Protocol OAuth requirement)
+    phpbb.atproto.controller.client_metadata:
+        class: phpbb\atproto\controller\client_metadata_controller
+        arguments:
+            - '@config'
+            - '@phpbb.atproto.auth.dpop_service'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+
     # Auth event listener
     phpbb.atproto.event.auth_listener:
         class: phpbb\atproto\event\auth_listener
