@@ -33,3 +33,4 @@ if (!class_exists('\phpbb\extension\base')) {
         }
     }
 }
+ 
