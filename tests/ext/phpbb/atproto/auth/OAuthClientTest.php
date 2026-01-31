@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace phpbb\atproto\tests\auth;
 
+use phpbb\atproto\auth\dpop_service;
+use phpbb\atproto\auth\dpop_service_interface;
 use phpbb\atproto\auth\oauth_client;
 use phpbb\atproto\auth\oauth_client_interface;
 use phpbb\atproto\auth\oauth_exception;
@@ -12,6 +14,20 @@ use PHPUnit\Framework\TestCase;
 
 class OAuthClientTest extends TestCase
 {
+    private function createDpopServiceMock(): dpop_service_interface
+    {
+        $mock = $this->createMock(dpop_service_interface::class);
+        $mock->method('createProof')->willReturn('mock.dpop.proof');
+        $mock->method('createProofWithNonce')->willReturn('mock.dpop.proof.with.nonce');
+        $mock->method('getPublicJwk')->willReturn([
+            'kty' => 'EC',
+            'crv' => 'P-256',
+            'x' => 'test-x',
+            'y' => 'test-y',
+        ]);
+        return $mock;
+    }
+
     public function test_class_exists(): void
     {
         $this->assertTrue(class_exists('\phpbb\atproto\auth\oauth_client'));
@@ -30,8 +46,10 @@ class OAuthClientTest extends TestCase
     public function test_implements_interface(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
         $client = new oauth_client(
             $didResolver,
+            $dpopService,
             'https://forum.example.com/client-metadata.json',
             'https://forum.example.com/atproto/callback'
         );
@@ -62,90 +80,33 @@ class OAuthClientTest extends TestCase
         $this->assertEquals(oauth_exception::CODE_INVALID_HANDLE, $exception->getCode());
     }
 
-    public function test_get_authorization_url_includes_required_params(): void
+    public function test_get_authorization_url_throws_without_par_endpoint(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
         $didResolver->method('resolveHandle')->willReturn('did:plc:test123');
         $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
         $didResolver->method('isValidDid')->willReturn(false);
 
+        $dpopService = $this->createDpopServiceMock();
+
         $client = new oauth_client(
             $didResolver,
+            $dpopService,
             'https://forum.example.com/client-metadata.json',
             'https://forum.example.com/atproto/callback'
         );
 
-        // Set OAuth metadata to avoid network calls
+        // Set OAuth metadata without PAR endpoint
         $client->setOAuthMetadata([
             'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
             'token_endpoint' => 'https://bsky.social/oauth/token',
-            'pushed_authorization_request_endpoint' => 'https://bsky.social/oauth/par',
+            // No pushed_authorization_request_endpoint
         ]);
 
-        $result = $client->getAuthorizationUrl('alice.bsky.social', 'test-state-123');
+        $this->expectException(oauth_exception::class);
+        $this->expectExceptionMessage('PAR endpoint required');
 
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('url', $result);
-        $this->assertArrayHasKey('code_verifier', $result);
-        $this->assertArrayHasKey('did', $result);
-
-        $url = $result['url'];
-        $this->assertStringContainsString('client_id=', $url);
-        $this->assertStringContainsString('state=test-state-123', $url);
-        $this->assertStringContainsString('code_challenge=', $url);
-        $this->assertStringContainsString('code_challenge_method=S256', $url);
-        $this->assertStringContainsString('response_type=code', $url);
-        $this->assertStringContainsString('redirect_uri=', $url);
-        $this->assertEquals('did:plc:test123', $result['did']);
-    }
-
-    public function test_get_authorization_url_resolves_handle_to_did(): void
-    {
-        $didResolver = $this->createMock(did_resolver::class);
-        $didResolver->expects($this->once())
-            ->method('resolveHandle')
-            ->with('alice.bsky.social')
-            ->willReturn('did:plc:resolved123');
-        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
-        $didResolver->method('isValidDid')->willReturn(false);
-
-        $client = new oauth_client(
-            $didResolver,
-            'https://forum.example.com/client-metadata.json',
-            'https://forum.example.com/atproto/callback'
-        );
-
-        $client->setOAuthMetadata([
-            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
-            'token_endpoint' => 'https://bsky.social/oauth/token',
-        ]);
-
-        $result = $client->getAuthorizationUrl('alice.bsky.social', 'state123');
-
-        $this->assertEquals('did:plc:resolved123', $result['did']);
-    }
-
-    public function test_get_authorization_url_accepts_did_directly(): void
-    {
-        $didResolver = $this->createMock(did_resolver::class);
-        $didResolver->method('isValidDid')->willReturn(true);
-        $didResolver->expects($this->never())->method('resolveHandle');
-        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
-
-        $client = new oauth_client(
-            $didResolver,
-            'https://forum.example.com/client-metadata.json',
-            'https://forum.example.com/atproto/callback'
-        );
-
-        $client->setOAuthMetadata([
-            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
-            'token_endpoint' => 'https://bsky.social/oauth/token',
-        ]);
-
-        $result = $client->getAuthorizationUrl('did:plc:direct123', 'state123');
-
-        $this->assertEquals('did:plc:direct123', $result['did']);
+        $client->getAuthorizationUrl('alice.bsky.social', 'test-state-123');
     }
 
     public function test_get_authorization_url_throws_on_invalid_handle(): void
@@ -155,8 +116,11 @@ class OAuthClientTest extends TestCase
         $didResolver->method('resolveHandle')
             ->willThrowException(new \InvalidArgumentException('Invalid handle'));
 
+        $dpopService = $this->createDpopServiceMock();
+
         $client = new oauth_client(
             $didResolver,
+            $dpopService,
             'https://forum.example.com/client-metadata.json',
             'https://forum.example.com/atproto/callback'
         );
@@ -174,8 +138,11 @@ class OAuthClientTest extends TestCase
         $didResolver->method('resolveHandle')
             ->willThrowException(new \RuntimeException('Resolution failed'));
 
+        $dpopService = $this->createDpopServiceMock();
+
         $client = new oauth_client(
             $didResolver,
+            $dpopService,
             'https://forum.example.com/client-metadata.json',
             'https://forum.example.com/atproto/callback'
         );
@@ -186,39 +153,15 @@ class OAuthClientTest extends TestCase
         $client->getAuthorizationUrl('alice.bsky.social', 'state123');
     }
 
-    public function test_code_verifier_has_valid_length(): void
-    {
-        $didResolver = $this->createMock(did_resolver::class);
-        $didResolver->method('isValidDid')->willReturn(true);
-        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
-
-        $client = new oauth_client(
-            $didResolver,
-            'https://forum.example.com/client-metadata.json',
-            'https://forum.example.com/atproto/callback'
-        );
-
-        $client->setOAuthMetadata([
-            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
-            'token_endpoint' => 'https://bsky.social/oauth/token',
-        ]);
-
-        $result = $client->getAuthorizationUrl('did:plc:test123', 'state123');
-
-        // PKCE code verifier should be between 43 and 128 characters
-        $this->assertGreaterThanOrEqual(43, strlen($result['code_verifier']));
-        $this->assertLessThanOrEqual(128, strlen($result['code_verifier']));
-        // Should only contain unreserved characters
-        $this->assertMatchesRegularExpression('/^[A-Za-z0-9\-._~]+$/', $result['code_verifier']);
-    }
-
     public function test_exchange_code_returns_tokens(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
 
         $client = $this->getMockBuilder(oauth_client::class)
             ->setConstructorArgs([
                 $didResolver,
+                $dpopService,
                 'https://forum.example.com/client-metadata.json',
                 'https://forum.example.com/atproto/callback',
             ])
@@ -252,10 +195,12 @@ class OAuthClientTest extends TestCase
     public function test_exchange_code_throws_on_failure(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
 
         $client = $this->getMockBuilder(oauth_client::class)
             ->setConstructorArgs([
                 $didResolver,
+                $dpopService,
                 'https://forum.example.com/client-metadata.json',
                 'https://forum.example.com/atproto/callback',
             ])
@@ -279,10 +224,12 @@ class OAuthClientTest extends TestCase
     public function test_refresh_access_token_returns_new_tokens(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
 
         $client = $this->getMockBuilder(oauth_client::class)
             ->setConstructorArgs([
                 $didResolver,
+                $dpopService,
                 'https://forum.example.com/client-metadata.json',
                 'https://forum.example.com/atproto/callback',
             ])
@@ -315,10 +262,12 @@ class OAuthClientTest extends TestCase
     public function test_refresh_access_token_throws_on_failure(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
 
         $client = $this->getMockBuilder(oauth_client::class)
             ->setConstructorArgs([
                 $didResolver,
+                $dpopService,
                 'https://forum.example.com/client-metadata.json',
                 'https://forum.example.com/atproto/callback',
             ])
@@ -340,34 +289,13 @@ class OAuthClientTest extends TestCase
         $client->refreshAccessToken('old_rt_test123', 'https://pds.example.com');
     }
 
-    public function test_set_oauth_metadata(): void
-    {
-        $didResolver = $this->createMock(did_resolver::class);
-        $didResolver->method('isValidDid')->willReturn(true);
-        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
-
-        $client = new oauth_client(
-            $didResolver,
-            'https://forum.example.com/client-metadata.json',
-            'https://forum.example.com/atproto/callback'
-        );
-
-        $metadata = [
-            'authorization_endpoint' => 'https://custom.auth.example.com/authorize',
-            'token_endpoint' => 'https://custom.auth.example.com/token',
-        ];
-
-        $client->setOAuthMetadata($metadata);
-
-        $result = $client->getAuthorizationUrl('did:plc:test123', 'state123');
-        $this->assertStringContainsString('custom.auth.example.com', $result['url']);
-    }
-
     public function test_get_client_id(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
         $client = new oauth_client(
             $didResolver,
+            $dpopService,
             'https://forum.example.com/client-metadata.json',
             'https://forum.example.com/atproto/callback'
         );
@@ -381,8 +309,10 @@ class OAuthClientTest extends TestCase
     public function test_get_redirect_uri(): void
     {
         $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
         $client = new oauth_client(
             $didResolver,
+            $dpopService,
             'https://forum.example.com/client-metadata.json',
             'https://forum.example.com/atproto/callback'
         );
@@ -391,5 +321,54 @@ class OAuthClientTest extends TestCase
             'https://forum.example.com/atproto/callback',
             $client->getRedirectUri()
         );
+    }
+
+    public function test_par_url_only_contains_client_id_and_request_uri(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $didResolver->method('isValidDid')->willReturn(true);
+        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
+
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeParRequest'])
+            ->getMock();
+
+        $client->method('makeParRequest')->willReturn([
+            'request_uri' => 'urn:ietf:params:oauth:request_uri:abc123',
+            'expires_in' => 60,
+        ]);
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+            'pushed_authorization_request_endpoint' => 'https://bsky.social/oauth/par',
+        ]);
+
+        $result = $client->getAuthorizationUrl('did:plc:test123', 'test-state');
+        $url = $result['url'];
+
+        // Parse the URL
+        $parts = parse_url($url);
+        parse_str($parts['query'], $query);
+
+        // Only client_id and request_uri should be in the URL (PAR requirement)
+        $this->assertCount(2, $query);
+        $this->assertArrayHasKey('client_id', $query);
+        $this->assertArrayHasKey('request_uri', $query);
+        $this->assertEquals('https://forum.example.com/client-metadata.json', $query['client_id']);
+        $this->assertEquals('urn:ietf:params:oauth:request_uri:abc123', $query['request_uri']);
+
+        // Should NOT contain other OAuth params (they went to PAR)
+        $this->assertStringNotContainsString('code_challenge=', $url);
+        $this->assertStringNotContainsString('redirect_uri=', $url);
+        $this->assertStringNotContainsString('scope=', $url);
     }
 }

@@ -9,12 +9,15 @@ use phpbb\atproto\services\did_resolver;
 /**
  * OAuth client for AT Protocol authentication.
  *
- * Implements OAuth 2.0 with PKCE for AT Protocol servers.
- * Handles authorization URL generation, token exchange, and token refresh.
+ * Implements OAuth 2.0 with PKCE and DPoP for AT Protocol servers.
+ * Uses Pushed Authorization Requests (PAR) as required by the protocol.
+ *
+ * @see https://docs.bsky.app/docs/advanced-guides/oauth-client
  */
 class oauth_client implements oauth_client_interface
 {
     private did_resolver $didResolver;
+    private dpop_service_interface $dpopService;
     private string $clientId;
     private string $redirectUri;
     private ?array $oauthMetadata = null;
@@ -22,16 +25,19 @@ class oauth_client implements oauth_client_interface
     /**
      * Constructor.
      *
-     * @param did_resolver $didResolver The DID resolver service
-     * @param string       $clientId    The client metadata URL (acts as client_id)
-     * @param string       $redirectUri The OAuth callback URL
+     * @param did_resolver            $didResolver The DID resolver service
+     * @param dpop_service_interface  $dpopService The DPoP service for token binding
+     * @param string                  $clientId    The client metadata URL (acts as client_id)
+     * @param string                  $redirectUri The OAuth callback URL
      */
     public function __construct(
         did_resolver $didResolver,
+        dpop_service_interface $dpopService,
         string $clientId,
         string $redirectUri
     ) {
         $this->didResolver = $didResolver;
+        $this->dpopService = $dpopService;
         $this->clientId = $clientId;
         $this->redirectUri = $redirectUri;
     }
@@ -48,13 +54,20 @@ class oauth_client implements oauth_client_interface
         $pdsUrl = $this->didResolver->getPdsUrl($did);
         $metadata = $this->getMetadataForPds($pdsUrl);
 
+        // Verify PAR endpoint exists (required by AT Protocol)
+        if (empty($metadata['pushed_authorization_request_endpoint'])) {
+            throw new oauth_exception(
+                'PAR endpoint required by AT Protocol',
+                oauth_exception::CODE_CONFIG_ERROR
+            );
+        }
+
         // Generate PKCE parameters
         $codeVerifier = $this->generateCodeVerifier();
         $codeChallenge = $this->generateCodeChallenge($codeVerifier);
 
-        // Build authorization URL
-        $authEndpoint = $metadata['authorization_endpoint'];
-        $params = [
+        // Build PAR request body
+        $parParams = [
             'client_id' => $this->clientId,
             'redirect_uri' => $this->redirectUri,
             'response_type' => 'code',
@@ -65,13 +78,133 @@ class oauth_client implements oauth_client_interface
             'login_hint' => $handleOrDid,
         ];
 
-        $url = $authEndpoint . '?' . http_build_query($params);
+        // Create DPoP proof for PAR endpoint
+        $dpopProof = $this->dpopService->createProof(
+            'POST',
+            $metadata['pushed_authorization_request_endpoint']
+        );
+
+        // Make PAR request
+        $parResponse = $this->makeParRequest(
+            $metadata['pushed_authorization_request_endpoint'],
+            $parParams,
+            ['DPoP' => $dpopProof]
+        );
+
+        if (!isset($parResponse['request_uri'])) {
+            throw new oauth_exception(
+                'PAR response missing request_uri',
+                oauth_exception::CODE_TOKEN_EXCHANGE_FAILED
+            );
+        }
+
+        // Build authorization URL with only client_id and request_uri
+        $authUrl = $metadata['authorization_endpoint'] . '?' . http_build_query([
+            'client_id' => $this->clientId,
+            'request_uri' => $parResponse['request_uri'],
+        ]);
 
         return [
-            'url' => $url,
+            'url' => $authUrl,
             'code_verifier' => $codeVerifier,
             'did' => $did,
+            'dpop_nonce' => $parResponse['dpop_nonce'] ?? null,
         ];
+    }
+
+    /**
+     * Make a Pushed Authorization Request.
+     *
+     * @param string $endpoint PAR endpoint URL
+     * @param array  $params   Request parameters
+     * @param array  $headers  Additional headers (including DPoP)
+     *
+     * @throws oauth_exception If request fails
+     *
+     * @return array PAR response with request_uri
+     */
+    public function makeParRequest(string $endpoint, array $params, array $headers): array
+    {
+        $headerLines = [
+            'Content-Type: application/x-www-form-urlencoded',
+            'Accept: application/json',
+        ];
+
+        foreach ($headers as $name => $value) {
+            $headerLines[] = "$name: $value";
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'timeout' => 30,
+                'header' => implode("\r\n", $headerLines),
+                'content' => http_build_query($params),
+                'ignore_errors' => true,
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $response = @file_get_contents($endpoint, false, $context);
+        if ($response === false) {
+            throw new oauth_exception(
+                'PAR request failed: could not connect',
+                oauth_exception::CODE_TOKEN_EXCHANGE_FAILED
+            );
+        }
+
+        // Check for DPoP nonce in response headers
+        $dpopNonce = null;
+        if (isset($http_response_header)) {
+            foreach ($http_response_header as $header) {
+                if (stripos($header, 'DPoP-Nonce:') === 0) {
+                    $dpopNonce = trim(substr($header, 11));
+                    break;
+                }
+            }
+        }
+
+        $data = json_decode($response, true);
+        if (!is_array($data)) {
+            throw new oauth_exception(
+                'PAR request failed: invalid response',
+                oauth_exception::CODE_TOKEN_EXCHANGE_FAILED
+            );
+        }
+
+        // Handle use_dpop_nonce error - retry with nonce
+        if (isset($data['error']) && $data['error'] === 'use_dpop_nonce' && $dpopNonce !== null) {
+            // Retry with nonce
+            $dpopProof = $this->dpopService->createProofWithNonce(
+                'POST',
+                $endpoint,
+                $dpopNonce
+            );
+            $headers['DPoP'] = $dpopProof;
+
+            return $this->makeParRequest($endpoint, $params, $headers);
+        }
+
+        if (isset($data['error'])) {
+            $errorMsg = $data['error'];
+            if (isset($data['error_description'])) {
+                $errorMsg .= ': ' . $data['error_description'];
+            }
+
+            throw new oauth_exception(
+                'PAR request failed: ' . $errorMsg,
+                oauth_exception::CODE_TOKEN_EXCHANGE_FAILED
+            );
+        }
+
+        if ($dpopNonce !== null) {
+            $data['dpop_nonce'] = $dpopNonce;
+        }
+
+        return $data;
     }
 
     /**
@@ -97,8 +230,11 @@ class oauth_client implements oauth_client_interface
             'code_verifier' => $codeVerifier,
         ];
 
+        // Create DPoP proof for token endpoint
+        $dpopProof = $this->dpopService->createProof('POST', $tokenEndpoint);
+
         try {
-            $response = $this->makeTokenRequest($tokenEndpoint, $params);
+            $response = $this->makeTokenRequest($tokenEndpoint, $params, ['DPoP' => $dpopProof]);
         } catch (\Throwable $e) {
             throw new oauth_exception(
                 'Token exchange failed: ' . $e->getMessage(),
@@ -133,8 +269,11 @@ class oauth_client implements oauth_client_interface
             'client_id' => $this->clientId,
         ];
 
+        // Create DPoP proof for token endpoint
+        $dpopProof = $this->dpopService->createProof('POST', $tokenEndpoint);
+
         try {
-            $response = $this->makeTokenRequest($tokenEndpoint, $params);
+            $response = $this->makeTokenRequest($tokenEndpoint, $params, ['DPoP' => $dpopProof]);
         } catch (\Throwable $e) {
             throw new oauth_exception(
                 'Token refresh failed: ' . $e->getMessage(),
@@ -252,21 +391,28 @@ class oauth_client implements oauth_client_interface
      *
      * @param string $endpoint The token endpoint URL
      * @param array  $params   Request parameters
+     * @param array  $headers  Additional headers (including DPoP)
      *
      * @throws \RuntimeException If the request fails
      *
      * @return array The token response
      */
-    public function makeTokenRequest(string $endpoint, array $params): array
+    public function makeTokenRequest(string $endpoint, array $params, array $headers = []): array
     {
+        $headerLines = [
+            'Content-Type: application/x-www-form-urlencoded',
+            'Accept: application/json',
+        ];
+
+        foreach ($headers as $name => $value) {
+            $headerLines[] = "$name: $value";
+        }
+
         $context = stream_context_create([
             'http' => [
                 'method' => 'POST',
                 'timeout' => 30,
-                'header' => implode("\r\n", [
-                    'Content-Type: application/x-www-form-urlencoded',
-                    'Accept: application/json',
-                ]),
+                'header' => implode("\r\n", $headerLines),
                 'content' => http_build_query($params),
                 'ignore_errors' => true,
             ],
@@ -281,9 +427,32 @@ class oauth_client implements oauth_client_interface
             throw new \RuntimeException('Token request failed');
         }
 
+        // Check for DPoP nonce in response headers
+        $dpopNonce = null;
+        if (isset($http_response_header)) {
+            foreach ($http_response_header as $header) {
+                if (stripos($header, 'DPoP-Nonce:') === 0) {
+                    $dpopNonce = trim(substr($header, 11));
+                    break;
+                }
+            }
+        }
+
         $data = json_decode($response, true);
         if (!is_array($data)) {
             throw new \RuntimeException('Invalid token response');
+        }
+
+        // Handle use_dpop_nonce error - retry with nonce
+        if (isset($data['error']) && $data['error'] === 'use_dpop_nonce' && $dpopNonce !== null) {
+            $dpopProof = $this->dpopService->createProofWithNonce(
+                'POST',
+                $endpoint,
+                $dpopNonce
+            );
+            $headers['DPoP'] = $dpopProof;
+
+            return $this->makeTokenRequest($endpoint, $params, $headers);
         }
 
         if (isset($data['error'])) {
@@ -347,7 +516,10 @@ class oauth_client implements oauth_client_interface
             return $this->oauthMetadata;
         }
 
-        return $this->fetchOAuthMetadata($pdsUrl);
+        $metadata = $this->fetchOAuthMetadata($pdsUrl);
+        $this->oauthMetadata = $metadata;
+
+        return $metadata;
     }
 
     /**

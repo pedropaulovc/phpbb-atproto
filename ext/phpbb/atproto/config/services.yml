@@ -23,6 +23,7 @@ services:
         class: phpbb\atproto\auth\oauth_client
         arguments:
             - '@phpbb.atproto.did_resolver'
+            - '@phpbb.atproto.auth.dpop_service'
             - '%atproto.client_id%'
             - '%atproto.redirect_uri%'
 
