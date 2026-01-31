@@ -7,8 +7,7 @@ services:
     volumes:
       - ../ext/phpbb/atproto:/var/www/html/ext/phpbb/atproto:cached
       - ../tests:/var/www/html/tests:cached
-      - ../vendor:/var/www/html/vendor:cached
-      - ../composer.json:/var/www/html/composer.json:cached
+      # Note: Do NOT mount ../vendor - it would overwrite phpBB's required Symfony 3.x packages
       - ../phpunit.xml:/var/www/html/phpunit.xml:cached
       - ../phpunit.integration.xml:/var/www/html/phpunit.integration.xml:cached
       - ../phpstan.neon:/var/www/html/phpstan.neon:cached
@@ -19,6 +18,8 @@ services:
       # Test encryption keys for local development only - DO NOT use in production
       ATPROTO_TOKEN_ENCRYPTION_KEYS: '{"v1":"dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3Q="}'
       ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION: v1
+      # AT Protocol OAuth client ID (typically the application URL)
+      ATPROTO_CLIENT_ID: 'http://localhost:8080/'
 
   db:
     ports:

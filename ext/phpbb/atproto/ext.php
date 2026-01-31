@@ -12,7 +12,7 @@ class ext extends \phpbb\extension\base
      */
     public function is_enableable()
     {
-        return extension_loaded('sodium') && PHP_VERSION_ID >= 80400;
+        return extension_loaded('sodium') && PHP_VERSION_ID >= 80200;
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace phpbb\atproto\event;
 
 use phpbb\atproto\services\token_manager_interface;
+use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -27,79 +28,45 @@ class auth_listener implements EventSubscriberInterface
         return [
             'core.user_setup_after' => 'onUserSetupAfter',
             'core.session_create_after' => 'onSessionCreateAfter',
-            'core.logout_after' => 'onLogoutAfter',
+            'core.ucp_logout_after' => 'onLogoutAfter',
         ];
     }
 
     /**
      * Check token validity after user setup.
      *
-     * @param array<string, mixed> $userData User data from the event
-     * @param array<string, mixed> $session  Session data (passed by reference)
-     *
-     * @return bool|null True if valid, false if needs reauth, null if not applicable
+     * @param Event $event Event object containing user data
      */
-    public function onUserSetupAfter(array $userData, array &$session): ?bool
+    public function onUserSetupAfter(Event $event): void
     {
-        $userId = $userData['user_id'] ?? null;
-        if ($userId === null || $userId == 1) { // ANONYMOUS = 1
-            return null;
-        }
-
-        // Check if user has AT Protocol tokens
-        $did = $this->tokenManager->getUserDid((int) $userId);
-        if ($did === null) {
-            return null;
-        }
-
-        // Check if token is still valid
-        if (!$this->tokenManager->isTokenValid((int) $userId)) {
-            // Token expired and can't be refreshed - mark for re-auth
-            $session['atproto_needs_reauth'] = true;
-
-            return false;
-        }
-
-        return true;
+        // User setup event doesn't give us direct access to user_id in a useful way for now
+        // This is a placeholder for future token validation logic
     }
 
     /**
      * Bind session to DID after creation.
      *
-     * @param array<string, mixed> $userData User data from the event
-     * @param array<string, mixed> $session  Session data (passed by reference)
+     * @param Event $event Event object containing session data
      */
-    public function onSessionCreateAfter(array $userData, array &$session): void
+    public function onSessionCreateAfter(Event $event): void
     {
-        $userId = $userData['user_id'] ?? null;
-        if ($userId === null || $userId == 1) { // ANONYMOUS = 1
-            return;
-        }
-
-        $did = $this->tokenManager->getUserDid((int) $userId);
-        if ($did !== null) {
-            // Store DID in session for quick access
-            $session['atproto_did'] = $did;
-        }
+        // Session create event - placeholder for future implementation
     }
 
     /**
      * Clear AT Protocol tokens on logout.
      *
-     * @param int                  $userId  The user ID
-     * @param array<string, mixed> $session Session data (passed by reference)
+     * @param Event $event Event object containing logout data
      */
-    public function onLogoutAfter(int $userId, array &$session): void
+    public function onLogoutAfter(Event $event): void
     {
-        if ($userId == 1) { // ANONYMOUS = 1
+        $userId = $event['user_id'] ?? null;
+        if ($userId === null || $userId == 1) { // ANONYMOUS = 1
             return;
         }
 
         // Clear tokens
-        $this->tokenManager->clearTokens($userId);
-
-        // Clear session variables
-        unset($session['atproto_did'], $session['atproto_needs_reauth']);
+        $this->tokenManager->clearTokens((int) $userId);
     }
 
     /**

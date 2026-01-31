@@ -28,18 +28,34 @@ services:
             - '%core.table_prefix%'
             - '%atproto.token_refresh_buffer%'
 
-    # OAuth callback controller
+    # OAuth controller
     phpbb.atproto.controller.oauth:
         class: phpbb\atproto\controller\oauth_controller
         arguments:
+            - '@controller.helper'
+            - '@language'
             - '@phpbb.atproto.oauth_client'
+            - '@request'
+            - '@template'
             - '@phpbb.atproto.token_manager'
+            - '@user'
 
     # Auth event listener
     phpbb.atproto.event.auth_listener:
         class: phpbb\atproto\event\auth_listener
         arguments:
             - '@phpbb.atproto.token_manager'
+        tags:
+            - { name: event.listener }
+
+    # UI event listener (language loading and template variables)
+    phpbb.atproto.event.ui_listener:
+        class: phpbb\atproto\event\ui_listener
+        arguments:
+            - '@controller.helper'
+            - '@language'
+            - '@template'
+            - '@user'
         tags:
             - { name: event.listener }
 
@@ -50,7 +66,8 @@ services:
     # phpbb.atproto.record_builder
 
 parameters:
-    atproto.client_id: '%env(ATPROTO_CLIENT_ID)%'
-    atproto.redirect_uri: ~
+    # These values can be overridden in phpBB's config/development.php or production.php
+    atproto.client_id: 'http://localhost:8080/'
+    atproto.redirect_uri: 'http://localhost:8080/app.php/atproto/callback'
     atproto.token_refresh_buffer: 300
     atproto.did_cache_ttl: 3600

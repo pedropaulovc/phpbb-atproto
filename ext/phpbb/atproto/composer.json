@@ -1,6 +1,7 @@
 {
     "name": "phpbb/atproto",
     "type": "phpbb-extension",
+    "version": "1.0.0-dev",
     "description": "AT Protocol integration for phpBB - DID authentication and decentralized data",
     "homepage": "https://github.com/pedropaulovc/phpbb-atproto",
     "license": "GPL-2.0-only",
@@ -11,7 +12,7 @@
         }
     ],
     "require": {
-        "php": ">=8.4"
+        "php": ">=8.2"
     },
     "extra": {
         "display-name": "AT Protocol Integration",
