@@ -8,6 +8,7 @@ use phpbb\atproto\auth\oauth_client_interface;
 use phpbb\atproto\auth\oauth_exception;
 use phpbb\atproto\services\token_manager_interface;
 use phpbb\controller\helper;
+use phpbb\db\driver\driver_interface;
 use phpbb\language\language;
 use phpbb\request\request;
 use phpbb\template\template;
@@ -20,6 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class oauth_controller
 {
+    private driver_interface $db;
     private helper $helper;
     private language $language;
     private oauth_client_interface $oauthClient;
@@ -27,16 +29,20 @@ class oauth_controller
     private template $template;
     private token_manager_interface $tokenManager;
     private user $user;
+    private string $tablePrefix;
 
     public function __construct(
+        driver_interface $db,
         helper $helper,
         language $language,
         oauth_client_interface $oauthClient,
         request $request,
         template $template,
         token_manager_interface $tokenManager,
-        user $user
+        user $user,
+        string $tablePrefix
     ) {
+        $this->db = $db;
         $this->helper = $helper;
         $this->language = $language;
         $this->oauthClient = $oauthClient;
@@ -44,6 +50,7 @@ class oauth_controller
         $this->template = $template;
         $this->tokenManager = $tokenManager;
         $this->user = $user;
+        $this->tablePrefix = $tablePrefix;
     }
 
     /**
@@ -63,11 +70,14 @@ class oauth_controller
                 $state = bin2hex(random_bytes(16));
                 $authResult = $this->oauthClient->getAuthorizationUrl($handle, $state);
 
-                // Store in session
-                $this->user->data['atproto_oauth_state'] = $state;
-                $this->user->data['atproto_code_verifier'] = $authResult['code_verifier'];
-                $this->user->data['atproto_handle'] = $handle;
-                $this->user->data['atproto_did'] = $authResult['did'];
+                // Store OAuth state in database (keyed by state for retrieval in callback)
+                $this->storeOAuthState($state, [
+                    'code_verifier' => $authResult['code_verifier'],
+                    'handle' => $handle,
+                    'did' => $authResult['did'],
+                    'pds_url' => $authResult['pds_url'],
+                    'created' => time(),
+                ]);
 
                 return new RedirectResponse($authResult['url']);
             } catch (oauth_exception $e) {
@@ -104,39 +114,50 @@ class oauth_controller
             return $this->showError(oauth_exception::CODE_OAUTH_DENIED);
         }
 
-        // Validate state parameter
-        $expectedState = $this->user->data['atproto_oauth_state'] ?? '';
-        if (empty($state) || empty($expectedState) || !hash_equals($expectedState, $state)) {
+        // Retrieve and validate OAuth state from database
+        if (empty($state)) {
             return $this->showError(oauth_exception::CODE_STATE_MISMATCH);
         }
 
-        // Retrieve session data
-        $codeVerifier = $this->user->data['atproto_code_verifier'] ?? '';
-        $handle = $this->user->data['atproto_handle'] ?? '';
-        $did = $this->user->data['atproto_did'] ?? '';
+        $stateData = $this->retrieveOAuthState($state);
+        if ($stateData === null) {
+            return $this->showError(oauth_exception::CODE_STATE_MISMATCH);
+        }
 
-        if (empty($codeVerifier)) {
+        // Delete state after retrieval (one-time use)
+        $this->deleteOAuthState($state);
+
+        // Extract session data
+        $codeVerifier = $stateData['code_verifier'] ?? '';
+        $handle = $stateData['handle'] ?? '';
+        $did = $stateData['did'] ?? '';
+        $pdsUrl = $stateData['pds_url'] ?? '';
+
+        if (empty($codeVerifier) || empty($pdsUrl)) {
             return $this->showError(oauth_exception::CODE_CONFIG_ERROR);
         }
 
         try {
-            $tokens = $this->oauthClient->exchangeCode($code, $state, $codeVerifier);
+            // Re-fetch OAuth metadata for the token exchange (new request = new instance)
+            error_log("[ATPROTO] Fetching OAuth metadata for PDS: $pdsUrl");
+            $metadata = $this->oauthClient->fetchOAuthMetadata($pdsUrl);
+            $this->oauthClient->setOAuthMetadata($metadata);
+            error_log("[ATPROTO] OAuth metadata fetched successfully");
 
-            // Clear session vars
-            unset(
-                $this->user->data['atproto_oauth_state'],
-                $this->user->data['atproto_code_verifier'],
-                $this->user->data['atproto_handle'],
-                $this->user->data['atproto_did']
-            );
+            error_log("[ATPROTO] Exchanging code for tokens...");
+            $tokens = $this->oauthClient->exchangeCode($code, $state, $codeVerifier);
+            error_log("[ATPROTO] Token exchange successful, DID: " . ($tokens['did'] ?? 'unknown'));
 
             $tokenDid = $tokens['did'] ?? $did;
 
             // Check if DID is already linked to a user
+            error_log("[ATPROTO] Looking up user by DID: $tokenDid");
             $existingUserId = $this->tokenManager->findUserByDid($tokenDid);
+            error_log("[ATPROTO] Existing user ID: " . ($existingUserId ?? 'null'));
 
             if ($existingUserId !== null) {
                 // User exists - store tokens and log them in
+                error_log("[ATPROTO] Storing tokens for existing user $existingUserId");
                 $this->tokenManager->storeTokens(
                     $existingUserId,
                     $tokenDid,
@@ -148,13 +169,18 @@ class oauth_controller
                 );
 
                 // TODO: Create phpBB session for this user
+                error_log("[ATPROTO] Login successful for user $existingUserId");
                 return $this->showSuccess($handle);
             }
 
             // If user is logged in, link the account
-            if ($this->user->data['user_id'] != ANONYMOUS) {
+            $currentUserId = $this->user->data['user_id'];
+            error_log("[ATPROTO] Current user ID: $currentUserId (ANONYMOUS=" . ANONYMOUS . ")");
+
+            if ($currentUserId != ANONYMOUS) {
+                error_log("[ATPROTO] Linking AT Protocol account to logged-in user $currentUserId");
                 $this->tokenManager->storeTokens(
-                    (int) $this->user->data['user_id'],
+                    (int) $currentUserId,
                     $tokenDid,
                     $handle,
                     '',
@@ -167,15 +193,18 @@ class oauth_controller
             }
 
             // No existing user and not logged in - show account creation/linking options
-            // For now, just show an error that account needs to be created first
+            error_log("[ATPROTO] No existing user and not logged in - showing error");
             $this->template->assign_vars([
-                'ATPROTO_ERROR' => $this->language->lang('ATPROTO_ERROR_NO_ACCOUNT'),
+                'U_ATPROTO_LOGIN' => $this->helper->route('phpbb_atproto_oauth_start'),
+                'ATPROTO_LOGIN_ERROR' => $this->language->lang('ATPROTO_ERROR_NO_ACCOUNT'),
             ]);
 
             return $this->helper->render('atproto_login.html', $this->language->lang('ATPROTO_LOGIN'));
         } catch (oauth_exception $e) {
+            error_log("[ATPROTO] OAuth exception: " . $e->getMessage() . " (code: " . $e->getCode() . ")");
             return $this->showError($e->getCode());
         } catch (\Exception $e) {
+            error_log("[ATPROTO] Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->showError(0);
         }
     }
@@ -225,5 +254,76 @@ class oauth_controller
         $langKey = $messages[$code] ?? 'ATPROTO_ERROR_UNKNOWN';
 
         return $this->language->lang($langKey);
+    }
+
+    /**
+     * Store OAuth state in database.
+     *
+     * @param string $state The state parameter
+     * @param array  $data  Associated data (code_verifier, handle, did)
+     */
+    private function storeOAuthState(string $state, array $data): void
+    {
+        $table = $this->tablePrefix . 'atproto_config';
+        $configName = 'oauth_state_' . $state;
+        $configValue = json_encode($data);
+
+        // Use phpBB's sql_build_array for proper escaping
+        $sql_ary = [
+            'config_name' => $configName,
+            'config_value' => $configValue,
+        ];
+
+        $sql = "INSERT INTO $table " . $this->db->sql_build_array('INSERT', $sql_ary);
+        $this->db->sql_query($sql);
+    }
+
+    /**
+     * Retrieve OAuth state from database.
+     *
+     * @param string $state The state parameter
+     *
+     * @return array|null The state data or null if not found/expired
+     */
+    private function retrieveOAuthState(string $state): ?array
+    {
+        $table = $this->tablePrefix . 'atproto_config';
+        $configName = 'oauth_state_' . $state;
+
+        $sql = "SELECT config_value FROM $table WHERE config_name = '" . $this->db->sql_escape($configName) . "'";
+        $result = $this->db->sql_query($sql);
+        $row = $this->db->sql_fetchrow($result);
+        $this->db->sql_freeresult($result);
+
+        if (!$row) {
+            return null;
+        }
+
+        $data = json_decode($row['config_value'], true);
+        if (!is_array($data)) {
+            return null;
+        }
+
+        // Check if expired (10 minute window)
+        if (isset($data['created']) && $data['created'] < time() - 600) {
+            $this->deleteOAuthState($state);
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Delete OAuth state from database.
+     *
+     * @param string $state The state parameter
+     */
+    private function deleteOAuthState(string $state): void
+    {
+        $table = $this->tablePrefix . 'atproto_config';
+        $configName = 'oauth_state_' . $state;
+
+        $sql = "DELETE FROM $table WHERE config_name = '" . $this->db->sql_escape($configName) . "'";
+        $this->db->sql_query($sql);
     }
 }

@@ -108,6 +108,7 @@ class oauth_client implements oauth_client_interface
             'url' => $authUrl,
             'code_verifier' => $codeVerifier,
             'did' => $did,
+            'pds_url' => $pdsUrl,
             'dpop_nonce' => $parResponse['dpop_nonce'] ?? null,
         ];
     }

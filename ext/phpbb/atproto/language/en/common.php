@@ -37,6 +37,7 @@ $lang = array_merge($lang, [
     'ATPROTO_ERROR_CONFIG' => 'AT Protocol login is not properly configured',
     'ATPROTO_ERROR_UNKNOWN' => 'An unknown error occurred',
     'ATPROTO_ERROR_REFRESH_FAILED' => 'Your session has expired - please login again',
+    'ATPROTO_ERROR_NO_ACCOUNT' => 'No account is linked to this AT Protocol identity. Please register or login first to link your account.',
 
     // Account linking
     'ATPROTO_LINK_ACCOUNT' => 'Link AT Protocol Account',

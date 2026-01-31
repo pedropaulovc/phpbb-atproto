@@ -41,6 +41,7 @@ services:
     phpbb.atproto.controller.oauth:
         class: phpbb\atproto\controller\oauth_controller
         arguments:
+            - '@dbal.conn'
             - '@controller.helper'
             - '@language'
             - '@phpbb.atproto.oauth_client'
@@ -48,6 +49,7 @@ services:
             - '@template'
             - '@phpbb.atproto.token_manager'
             - '@user'
+            - '%core.table_prefix%'
 
     # Client metadata controller (AT Protocol OAuth requirement)
     phpbb.atproto.controller.client_metadata:
@@ -85,7 +87,9 @@ services:
 
 parameters:
     # These values can be overridden in phpBB's config/development.php or production.php
-    atproto.client_id: 'http://localhost:8080/'
-    atproto.redirect_uri: 'http://localhost:8080/app.php/atproto/callback'
+    # NOTE: AT Protocol OAuth localhost exception - client_id is http://localhost/ with redirect_uri in query params
+    # See: https://atproto.com/specs/oauth (Localhost Client Metadata section)
+    atproto.client_id: 'http://localhost/?redirect_uri=http%%3A%%2F%%2F127.0.0.1%%3A8080%%2Fapp.php%%2Fatproto%%2Fcallback&scope=atproto%%20transition%%3Ageneric'
+    atproto.redirect_uri: 'http://127.0.0.1:8080/app.php/atproto/callback'
     atproto.token_refresh_buffer: 300
     atproto.did_cache_ttl: 3600
