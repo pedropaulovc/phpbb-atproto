@@ -31,6 +31,23 @@ interface dpop_service_interface
     public function createProof(string $method, string $url, ?string $accessToken = null): string;
 
     /**
+     * Create a DPoP proof JWT with a server-provided nonce.
+     *
+     * @param string      $method      HTTP method (GET, POST, etc.)
+     * @param string      $url         Full URL of the request
+     * @param string|null $nonce       Server-provided nonce
+     * @param string|null $accessToken Access token (include for resource requests)
+     *
+     * @return string The DPoP proof JWT
+     */
+    public function createProofWithNonce(
+        string $method,
+        string $url,
+        ?string $nonce = null,
+        ?string $accessToken = null
+    ): string;
+
+    /**
      * Get the JWK thumbprint of the public key.
      *
      * Used as the 'jkt' claim to bind tokens to this key.

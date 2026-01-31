@@ -43,13 +43,13 @@ class OAuthControllerTest extends TestCase
         ?helper $helperObj = null,
         ?language $languageObj = null
     ): oauth_controller {
-        $oauthClient = $oauthClient ?? $this->createMock(oauth_client_interface::class);
-        $tokenManager = $tokenManager ?? $this->createMock(token_manager_interface::class);
-        $requestObj = $requestObj ?? new request();
-        $userObj = $userObj ?? new user();
-        $templateObj = $templateObj ?? new template();
-        $helperObj = $helperObj ?? new helper();
-        $languageObj = $languageObj ?? new language([
+        $oauthClient ??= $this->createMock(oauth_client_interface::class);
+        $tokenManager ??= $this->createMock(token_manager_interface::class);
+        $requestObj ??= new request();
+        $userObj ??= new user();
+        $templateObj ??= new template();
+        $helperObj ??= new helper();
+        $languageObj ??= new language([
             'ATPROTO_LOGIN' => 'AT Protocol Login',
             'ATPROTO_ERROR_INVALID_HANDLE' => 'Invalid handle format',
             'ATPROTO_ERROR_DID_RESOLUTION' => 'Could not resolve DID',

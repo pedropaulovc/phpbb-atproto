@@ -32,6 +32,7 @@ class ClientMetadataControllerTest extends TestCase
             'x' => 'test-x-coordinate',
             'y' => 'test-y-coordinate',
         ]);
+
         return $mock;
     }
 

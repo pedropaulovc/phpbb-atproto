@@ -25,6 +25,7 @@ if (!class_exists('\phpbb\language\language')) {
             if (!empty($args)) {
                 return sprintf($string, ...$args);
             }
+
             return $string;
         }
 

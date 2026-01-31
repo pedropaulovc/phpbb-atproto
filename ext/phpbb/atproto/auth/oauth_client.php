@@ -25,10 +25,10 @@ class oauth_client implements oauth_client_interface
     /**
      * Constructor.
      *
-     * @param did_resolver            $didResolver The DID resolver service
-     * @param dpop_service_interface  $dpopService The DPoP service for token binding
-     * @param string                  $clientId    The client metadata URL (acts as client_id)
-     * @param string                  $redirectUri The OAuth callback URL
+     * @param did_resolver           $didResolver The DID resolver service
+     * @param dpop_service_interface $dpopService The DPoP service for token binding
+     * @param string                 $clientId    The client metadata URL (acts as client_id)
+     * @param string                 $redirectUri The OAuth callback URL
      */
     public function __construct(
         did_resolver $didResolver,

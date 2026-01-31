@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace phpbb\atproto\tests\auth;
 
-use phpbb\atproto\auth\dpop_service;
 use phpbb\atproto\auth\dpop_service_interface;
 use phpbb\atproto\auth\oauth_client;
 use phpbb\atproto\auth\oauth_client_interface;
@@ -24,6 +23,7 @@ class OAuthClientTest extends TestCase
             'x' => 'test-x',
             'y' => 'test-y',
         ]);
+
         return $mock;
     }
 

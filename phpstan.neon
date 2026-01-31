@@ -1,12 +1,25 @@
 parameters:
     level: 6
     phpVersion: 80200
+    bootstrapFiles:
+        - tests/bootstrap.php
     paths:
         - ext/phpbb/atproto
     excludePaths:
         - ext/phpbb/atproto/migrations
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        - '#Access to undefined constant IN_PHPBB#'
-        - '#Access to undefined constant PHPBB_ROOT_PATH#'
-        - '#Access to undefined constant PHP_EXT#'
+        # Defensive runtime error checking - these functions can return false at runtime
+        - '#Strict comparison using === between OpenSSLAsymmetricKey and false will always evaluate to false#'
+        - '#Strict comparison using === between string and false will always evaluate to false#'
+        # $http_response_header is a PHP magic variable that exists after stream operations
+        - '#Variable \$http_response_header in isset\(\) always exists#'
+        # Allow untyped array returns for compatibility with phpBB interfaces
+        - identifier: missingType.iterableValue
+        # Allow properties written for future use or debugging
+        - identifier: property.onlyWritten
+        # Allow missing return/param types for compatibility with phpBB base classes
+        - identifier: missingType.return
+        - identifier: missingType.parameter
+        # Allow null coalesce on array offsets that may not exist
+        - identifier: nullCoalesce.offset

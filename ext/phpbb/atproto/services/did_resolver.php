@@ -159,12 +159,16 @@ class did_resolver
             if (empty($part)) {
                 return false;
             }
-            // Each segment must match DNS label rules
-            if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/', $part) && strlen($part) > 1) {
-                // Allow single character segments
-                if (strlen($part) === 1 && !preg_match('/^[a-zA-Z0-9]$/', $part)) {
+            // Single character segments must be alphanumeric
+            if (strlen($part) === 1) {
+                if (!preg_match('/^[a-zA-Z0-9]$/', $part)) {
                     return false;
                 }
+                continue;
+            }
+            // Multi-character segments must match DNS label rules
+            if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/', $part)) {
+                return false;
             }
         }
 

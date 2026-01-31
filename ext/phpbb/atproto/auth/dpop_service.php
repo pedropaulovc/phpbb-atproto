@@ -34,10 +34,10 @@ class dpop_service implements dpop_service_interface
     /**
      * Constructor.
      *
-     * @param driver_interface|null   $db          Database driver (optional for testing)
-     * @param token_encryption|null   $encryption  Token encryption service (optional for testing)
-     * @param string                  $tablePrefix Table prefix (default: 'phpbb_')
-     * @param string|null             $storedKeypair JSON-encoded keypair from storage (for testing only)
+     * @param driver_interface|null $db            Database driver (optional for testing)
+     * @param token_encryption|null $encryption    Token encryption service (optional for testing)
+     * @param string                $tablePrefix   Table prefix (default: 'phpbb_')
+     * @param string|null           $storedKeypair JSON-encoded keypair from storage (for testing only)
      */
     public function __construct(
         ?driver_interface $db = null,
@@ -69,6 +69,7 @@ class dpop_service implements dpop_service_interface
             $stored = $this->loadFromDatabase();
             if ($stored !== null) {
                 $this->loadKeypairFromJson($stored);
+
                 return $this->keypair;
             }
         }
