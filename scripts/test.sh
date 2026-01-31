@@ -10,7 +10,9 @@ SUITE="${1:-all}"
 
 run_unit_tests() {
     echo "Running unit tests..."
-    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb phpunit --testsuite unit
+    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T -e XDEBUG_MODE=coverage phpbb phpunit --testsuite unit
+    echo "Checking coverage threshold..."
+    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb vendor/bin/coverage-check tests/coverage/clover.xml 70
 }
 
 run_integration_tests() {

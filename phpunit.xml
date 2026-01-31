@@ -20,6 +20,7 @@
             <directory>ext/phpbb/atproto/migrations</directory>
         </exclude>
         <report>
+            <clover outputFile="tests/coverage/clover.xml"/>
             <html outputDirectory="tests/coverage"/>
             <text outputFile="php://stdout"/>
         </report>

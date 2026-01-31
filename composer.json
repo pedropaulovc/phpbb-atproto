@@ -15,6 +15,7 @@
         "phpunit/phpunit": "^9.6",
         "friendsofphp/php-cs-fixer": "^3.64",
         "phpstan/phpstan": "^1.12",
+        "rregeer/phpunit-coverage-check": "^0.3.1",
         "vimeo/psalm": "^5.26"
     },
     "autoload": {
