@@ -178,7 +178,10 @@ class oauth_client implements oauth_client_interface
     }
 
     /**
-     * Fetch OAuth metadata from a PDS.
+     * Fetch OAuth metadata for a PDS.
+     *
+     * First fetches the protected resource metadata to find the authorization server,
+     * then fetches the authorization server metadata.
      *
      * @param string $pdsUrl The PDS URL
      *
@@ -188,7 +191,8 @@ class oauth_client implements oauth_client_interface
      */
     public function fetchOAuthMetadata(string $pdsUrl): array
     {
-        $metadataUrl = rtrim($pdsUrl, '/') . '/.well-known/oauth-authorization-server';
+        // Step 1: Fetch protected resource metadata from PDS to find auth server
+        $resourceMetadataUrl = rtrim($pdsUrl, '/') . '/.well-known/oauth-protected-resource';
 
         $context = stream_context_create([
             'http' => [
@@ -201,10 +205,30 @@ class oauth_client implements oauth_client_interface
             ],
         ]);
 
-        $response = @file_get_contents($metadataUrl, false, $context);
+        $response = @file_get_contents($resourceMetadataUrl, false, $context);
         if ($response === false) {
             throw new oauth_exception(
-                "Failed to fetch OAuth metadata from: $metadataUrl",
+                "Failed to fetch protected resource metadata from: $resourceMetadataUrl",
+                oauth_exception::CODE_METADATA_FETCH_FAILED
+            );
+        }
+
+        $resourceMetadata = json_decode($response, true);
+        if (!is_array($resourceMetadata) || empty($resourceMetadata['authorization_servers'])) {
+            throw new oauth_exception(
+                'Invalid protected resource metadata - no authorization servers',
+                oauth_exception::CODE_METADATA_FETCH_FAILED
+            );
+        }
+
+        // Step 2: Fetch authorization server metadata
+        $authServer = $resourceMetadata['authorization_servers'][0];
+        $authMetadataUrl = rtrim($authServer, '/') . '/.well-known/oauth-authorization-server';
+
+        $response = @file_get_contents($authMetadataUrl, false, $context);
+        if ($response === false) {
+            throw new oauth_exception(
+                "Failed to fetch OAuth metadata from: $authMetadataUrl",
                 oauth_exception::CODE_METADATA_FETCH_FAILED
             );
         }
@@ -216,6 +240,9 @@ class oauth_client implements oauth_client_interface
                 oauth_exception::CODE_METADATA_FETCH_FAILED
             );
         }
+
+        // Store the auth server URL for later use
+        $metadata['_auth_server'] = $authServer;
 
         return $metadata;
     }
