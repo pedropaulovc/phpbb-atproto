@@ -14,7 +14,7 @@
 
 - Docker environment running (`docker/` setup)
 - Lexicons already defined (10 files in `lexicons/`)
-- Specifications complete in `specs/components/`
+- Specifications complete in `docs/spec/components/`
 
 ---
 
@@ -3405,8 +3405,8 @@ After completing all tasks:
 
 ## Reference Files
 
-- `specs/components/phpbb-extension/migrations.md` - Full migration spec with table schemas
-- `specs/components/phpbb-extension/auth-provider.md` - Auth flow spec with interfaces
-- `specs/components/phpbb-extension/write-interceptor.md` - Write path (next phase)
+- `docs/spec/components/phpbb-extension/migrations.md` - Full migration spec with table schemas
+- `docs/spec/components/phpbb-extension/auth-provider.md` - Auth flow spec with interfaces
+- `docs/spec/components/phpbb-extension/write-interceptor.md` - Write path (next phase)
 - `docs/api-contracts.md` - Interface definitions
-- `lexicons/` - AT Protocol lexicon definitions (10 files)
+- `docs/spec/lexicons/` - AT Protocol lexicon definitions (10 files)
