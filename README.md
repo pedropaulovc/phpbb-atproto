@@ -144,4 +144,4 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exe
 
 ## License
 
-TBD
+MIT License - see [LICENSE](LICENSE) for details.
