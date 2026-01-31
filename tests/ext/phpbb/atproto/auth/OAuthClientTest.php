@@ -370,4 +370,355 @@ class OAuthClientTest extends TestCase
         $this->assertStringNotContainsString('redirect_uri=', $url);
         $this->assertStringNotContainsString('scope=', $url);
     }
+
+    public function test_exchange_code_extracts_did_from_jwt_when_sub_missing(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeTokenRequest'])
+            ->getMock();
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+        ]);
+
+        // Create a JWT-like access token with 'sub' in the payload
+        $header = base64_encode(json_encode(['alg' => 'ES256', 'typ' => 'JWT']));
+        $payload = base64_encode(json_encode(['sub' => 'did:plc:fromjwt123', 'iat' => time()]));
+        $signature = base64_encode('fake-signature');
+        $jwtToken = rtrim(strtr($header, '+/', '-_'), '=') . '.' .
+                    rtrim(strtr($payload, '+/', '-_'), '=') . '.' .
+                    rtrim(strtr($signature, '+/', '-_'), '=');
+
+        $client->method('makeTokenRequest')
+            ->willReturn([
+                'access_token' => $jwtToken,
+                'refresh_token' => 'rt_test123',
+                'token_type' => 'DPoP',
+                'expires_in' => 3600,
+                // No 'sub' in the response - should be extracted from JWT
+            ]);
+
+        $result = $client->exchangeCode('auth_code_123', 'state123', 'code_verifier_123');
+
+        $this->assertEquals('did:plc:fromjwt123', $result['did']);
+    }
+
+    public function test_exchange_code_handles_invalid_jwt_gracefully(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeTokenRequest'])
+            ->getMock();
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+        ]);
+
+        $client->method('makeTokenRequest')
+            ->willReturn([
+                'access_token' => 'not-a-jwt-token',  // Invalid JWT format
+                'refresh_token' => 'rt_test123',
+                'token_type' => 'DPoP',
+                'expires_in' => 3600,
+            ]);
+
+        $result = $client->exchangeCode('auth_code_123', 'state123', 'code_verifier_123');
+
+        // Should return empty string for DID when extraction fails
+        $this->assertEquals('', $result['did']);
+    }
+
+    public function test_exchange_code_handles_jwt_with_invalid_payload(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeTokenRequest'])
+            ->getMock();
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+        ]);
+
+        // JWT with invalid base64 in payload
+        $client->method('makeTokenRequest')
+            ->willReturn([
+                'access_token' => 'header.!!!invalid-base64!!!.signature',
+                'refresh_token' => 'rt_test123',
+                'token_type' => 'DPoP',
+                'expires_in' => 3600,
+            ]);
+
+        $result = $client->exchangeCode('auth_code_123', 'state123', 'code_verifier_123');
+
+        $this->assertEquals('', $result['did']);
+    }
+
+    public function test_exchange_code_handles_jwt_with_non_array_payload(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeTokenRequest'])
+            ->getMock();
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+        ]);
+
+        // JWT with string payload instead of JSON object
+        $header = rtrim(strtr(base64_encode('{"alg":"ES256"}'), '+/', '-_'), '=');
+        $payload = rtrim(strtr(base64_encode('"just a string"'), '+/', '-_'), '=');
+        $signature = rtrim(strtr(base64_encode('sig'), '+/', '-_'), '=');
+
+        $client->method('makeTokenRequest')
+            ->willReturn([
+                'access_token' => "$header.$payload.$signature",
+                'refresh_token' => 'rt_test123',
+                'token_type' => 'DPoP',
+                'expires_in' => 3600,
+            ]);
+
+        $result = $client->exchangeCode('auth_code_123', 'state123', 'code_verifier_123');
+
+        $this->assertEquals('', $result['did']);
+    }
+
+    public function test_exchange_code_throws_without_metadata(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = new oauth_client(
+            $didResolver,
+            $dpopService,
+            'https://forum.example.com/client-metadata.json',
+            'https://forum.example.com/atproto/callback'
+        );
+
+        // Don't set OAuth metadata
+
+        $this->expectException(oauth_exception::class);
+        $this->expectExceptionCode(oauth_exception::CODE_CONFIG_ERROR);
+
+        $client->exchangeCode('auth_code_123', 'state123', 'code_verifier_123');
+    }
+
+    public function test_exchange_code_uses_defaults_when_optional_fields_missing(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeTokenRequest'])
+            ->getMock();
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+        ]);
+
+        // Return minimal response without optional fields
+        $client->method('makeTokenRequest')
+            ->willReturn([
+                'access_token' => 'at_test123',
+                'sub' => 'did:plc:user123',
+                // No refresh_token, expires_in, or token_type
+            ]);
+
+        $result = $client->exchangeCode('auth_code_123', 'state123', 'code_verifier_123');
+
+        $this->assertEquals('at_test123', $result['access_token']);
+        $this->assertEquals('', $result['refresh_token']);
+        $this->assertEquals(3600, $result['expires_in']);
+        $this->assertEquals('DPoP', $result['token_type']);
+    }
+
+    public function test_refresh_access_token_uses_defaults_when_optional_fields_missing(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeTokenRequest', 'fetchOAuthMetadata'])
+            ->getMock();
+
+        $client->method('fetchOAuthMetadata')
+            ->willReturn([
+                'authorization_endpoint' => 'https://pds.example.com/oauth/authorize',
+                'token_endpoint' => 'https://pds.example.com/oauth/token',
+            ]);
+
+        // Return minimal response without optional fields
+        $client->method('makeTokenRequest')
+            ->willReturn([
+                'access_token' => 'new_at_test123',
+                // No refresh_token, expires_in, or token_type
+            ]);
+
+        $result = $client->refreshAccessToken('old_rt_test123', 'https://pds.example.com');
+
+        $this->assertEquals('new_at_test123', $result['access_token']);
+        $this->assertEquals('', $result['refresh_token']);
+        $this->assertEquals(3600, $result['expires_in']);
+        $this->assertEquals('DPoP', $result['token_type']);
+    }
+
+    public function test_get_authorization_url_uses_cached_metadata(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $didResolver->method('isValidDid')->willReturn(true);
+        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
+
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeParRequest'])
+            ->getMock();
+
+        $client->method('makeParRequest')->willReturn([
+            'request_uri' => 'urn:ietf:params:oauth:request_uri:abc123',
+            'expires_in' => 60,
+        ]);
+
+        // Set metadata before call
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+            'pushed_authorization_request_endpoint' => 'https://bsky.social/oauth/par',
+        ]);
+
+        $result = $client->getAuthorizationUrl('did:plc:test123', 'test-state');
+
+        $this->assertArrayHasKey('url', $result);
+        $this->assertArrayHasKey('code_verifier', $result);
+        $this->assertArrayHasKey('did', $result);
+        $this->assertEquals('did:plc:test123', $result['did']);
+
+        // Verify code_verifier is a valid PKCE verifier (43-128 characters, base64url)
+        $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{43,128}$/', $result['code_verifier']);
+    }
+
+    public function test_get_authorization_url_returns_dpop_nonce_when_present(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $didResolver->method('isValidDid')->willReturn(true);
+        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
+
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeParRequest'])
+            ->getMock();
+
+        $client->method('makeParRequest')->willReturn([
+            'request_uri' => 'urn:ietf:params:oauth:request_uri:abc123',
+            'expires_in' => 60,
+            'dpop_nonce' => 'server-provided-nonce',
+        ]);
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+            'pushed_authorization_request_endpoint' => 'https://bsky.social/oauth/par',
+        ]);
+
+        $result = $client->getAuthorizationUrl('did:plc:test123', 'test-state');
+
+        $this->assertEquals('server-provided-nonce', $result['dpop_nonce']);
+    }
+
+    public function test_get_authorization_url_returns_null_dpop_nonce_when_missing(): void
+    {
+        $didResolver = $this->createMock(did_resolver::class);
+        $didResolver->method('isValidDid')->willReturn(true);
+        $didResolver->method('getPdsUrl')->willReturn('https://bsky.social');
+
+        $dpopService = $this->createDpopServiceMock();
+
+        $client = $this->getMockBuilder(oauth_client::class)
+            ->setConstructorArgs([
+                $didResolver,
+                $dpopService,
+                'https://forum.example.com/client-metadata.json',
+                'https://forum.example.com/atproto/callback',
+            ])
+            ->onlyMethods(['makeParRequest'])
+            ->getMock();
+
+        $client->method('makeParRequest')->willReturn([
+            'request_uri' => 'urn:ietf:params:oauth:request_uri:abc123',
+            'expires_in' => 60,
+            // No dpop_nonce
+        ]);
+
+        $client->setOAuthMetadata([
+            'authorization_endpoint' => 'https://bsky.social/oauth/authorize',
+            'token_endpoint' => 'https://bsky.social/oauth/token',
+            'pushed_authorization_request_endpoint' => 'https://bsky.social/oauth/par',
+        ]);
+
+        $result = $client->getAuthorizationUrl('did:plc:test123', 'test-state');
+
+        $this->assertNull($result['dpop_nonce']);
+    }
 }

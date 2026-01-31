@@ -514,4 +514,213 @@ class TokenManagerTest extends TestCase
 
         $this->assertTrue(true); // If we get here, test passed
     }
+
+    public function test_get_access_token_triggers_refresh_when_near_expiry(): void
+    {
+        // Token expires within refresh buffer (300s) and also within the 60s re-check buffer
+        // to ensure refresh actually happens
+        $expiresAt = time() + 30;  // Within 60s re-check buffer
+        $encryption = new token_encryption();
+        $encryptedToken = $encryption->encrypt('test-access-token');
+        $encryptedRefresh = $encryption->encrypt('test-refresh-token');
+
+        $callCount = 0;
+        $db = $this->createMock(driver_interface::class);
+
+        // Set up transaction methods
+        $db->method('sql_transaction')->willReturn(true);
+
+        $db->method('sql_query')->willReturn(true);
+
+        // First fetchrow for getTokenRow, second for refreshToken lock
+        $db->method('sql_fetchrow')
+            ->willReturnCallback(function () use (&$callCount, $encryptedToken, $encryptedRefresh, $expiresAt) {
+                $callCount++;
+                if ($callCount === 1) {
+                    // Initial token row (near expiry)
+                    return [
+                        'did' => 'did:plc:test123',
+                        'handle' => 'test.bsky.social',
+                        'pds_url' => 'https://bsky.social',
+                        'access_token' => $encryptedToken,
+                        'refresh_token' => $encryptedRefresh,
+                        'token_expires_at' => $expiresAt,
+                    ];
+                }
+
+                // Locked row for refresh (still near expiry, needs actual refresh)
+                return [
+                    'access_token' => $encryptedToken,
+                    'refresh_token' => $encryptedRefresh,
+                    'token_expires_at' => $expiresAt,  // Still within 60s buffer
+                    'pds_url' => 'https://bsky.social',
+                ];
+            });
+
+        $db->method('sql_freeresult')->willReturn(true);
+        $db->method('sql_escape')->willReturnCallback(fn ($s) => $s);
+
+        $oauthClient = $this->createMock(oauth_client_interface::class);
+        $oauthClient->method('refreshAccessToken')
+            ->willReturn([
+                'access_token' => 'new-access-token',
+                'refresh_token' => 'new-refresh-token',
+                'expires_in' => 3600,
+            ]);
+
+        $manager = new token_manager(
+            $db,
+            $encryption,
+            $oauthClient,
+            'phpbb_',
+            300
+        );
+
+        $token = $manager->getAccessToken(1);
+
+        $this->assertEquals('new-access-token', $token);
+    }
+
+    public function test_refresh_token_throws_when_user_not_found(): void
+    {
+        $db = $this->createMock(driver_interface::class);
+        $db->method('sql_transaction')->willReturn(true);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn(false);
+        $db->method('sql_freeresult')->willReturn(true);
+
+        $encryption = new token_encryption();
+        $oauthClient = $this->createMock(oauth_client_interface::class);
+
+        $manager = new token_manager(
+            $db,
+            $encryption,
+            $oauthClient,
+            'phpbb_',
+            300
+        );
+
+        $this->expectException(token_not_found_exception::class);
+        $manager->refreshToken(999);
+    }
+
+    public function test_refresh_token_returns_cached_when_already_refreshed(): void
+    {
+        // Token was just refreshed by another request (expires far in future)
+        $futureExpiry = time() + 3600;
+        $encryption = new token_encryption();
+        $encryptedToken = $encryption->encrypt('cached-access-token');
+        $encryptedRefresh = $encryption->encrypt('cached-refresh-token');
+
+        $db = $this->createMock(driver_interface::class);
+        $db->method('sql_transaction')->willReturn(true);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn([
+            'access_token' => $encryptedToken,
+            'refresh_token' => $encryptedRefresh,
+            'token_expires_at' => $futureExpiry,
+            'pds_url' => 'https://bsky.social',
+        ]);
+        $db->method('sql_freeresult')->willReturn(true);
+
+        $oauthClient = $this->createMock(oauth_client_interface::class);
+        // Should NOT be called since token is still valid
+        $oauthClient->expects($this->never())->method('refreshAccessToken');
+
+        $manager = new token_manager(
+            $db,
+            $encryption,
+            $oauthClient,
+            'phpbb_',
+            300
+        );
+
+        $token = $manager->refreshToken(1);
+
+        $this->assertEquals('cached-access-token', $token);
+    }
+
+    public function test_refresh_token_throws_on_oauth_failure(): void
+    {
+        $expiresAt = time() + 30;  // Within the 60s re-check buffer
+        $encryption = new token_encryption();
+        $encryptedToken = $encryption->encrypt('test-access-token');
+        $encryptedRefresh = $encryption->encrypt('test-refresh-token');
+
+        $db = $this->createMock(driver_interface::class);
+        $db->method('sql_transaction')->willReturn(true);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn([
+            'access_token' => $encryptedToken,
+            'refresh_token' => $encryptedRefresh,
+            'token_expires_at' => $expiresAt,
+            'pds_url' => 'https://bsky.social',
+        ]);
+        $db->method('sql_freeresult')->willReturn(true);
+
+        $oauthClient = $this->createMock(oauth_client_interface::class);
+        $oauthClient->method('refreshAccessToken')
+            ->willThrowException(new \RuntimeException('OAuth server unavailable'));
+
+        $manager = new token_manager(
+            $db,
+            $encryption,
+            $oauthClient,
+            'phpbb_',
+            300
+        );
+
+        $this->expectException(token_refresh_failed_exception::class);
+        $this->expectExceptionMessage('OAuth server unavailable');
+        $manager->refreshToken(1);
+    }
+
+    public function test_get_user_handle_returns_null_for_nonexistent_user(): void
+    {
+        $db = $this->createMock(driver_interface::class);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn(false);
+        $db->method('sql_freeresult')->willReturn(true);
+
+        $encryption = new token_encryption();
+        $oauthClient = $this->createMock(oauth_client_interface::class);
+
+        $manager = new token_manager(
+            $db,
+            $encryption,
+            $oauthClient,
+            'phpbb_',
+            300
+        );
+
+        $this->assertNull($manager->getUserHandle(999));
+    }
+
+    public function test_is_token_valid_returns_false_when_access_token_null(): void
+    {
+        $db = $this->createMock(driver_interface::class);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn([
+            'did' => 'did:plc:test123',
+            'handle' => 'test.bsky.social',
+            'pds_url' => 'https://bsky.social',
+            'access_token' => null,  // Token is null
+            'refresh_token' => null,
+            'token_expires_at' => time() + 3600,
+        ]);
+        $db->method('sql_freeresult')->willReturn(true);
+
+        $encryption = new token_encryption();
+        $oauthClient = $this->createMock(oauth_client_interface::class);
+
+        $manager = new token_manager(
+            $db,
+            $encryption,
+            $oauthClient,
+            'phpbb_',
+            300
+        );
+
+        $this->assertFalse($manager->isTokenValid(1));
+    }
 }

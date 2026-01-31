@@ -191,4 +191,146 @@ class DpopServiceTest extends TestCase
         $this->assertArrayHasKey('nonce', $payload);
         $this->assertEquals($nonce, $payload['nonce']);
     }
+
+    public function test_create_proof_with_nonce_and_access_token(): void
+    {
+        $nonce = 'test-nonce';
+        $accessToken = 'test-access-token';
+        $proof = $this->service->createProofWithNonce(
+            'POST',
+            'https://bsky.social/oauth/token',
+            $nonce,
+            $accessToken
+        );
+
+        $parts = explode('.', $proof);
+        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+
+        $this->assertArrayHasKey('nonce', $payload);
+        $this->assertArrayHasKey('ath', $payload);
+        $this->assertEquals($nonce, $payload['nonce']);
+    }
+
+    public function test_loads_keypair_from_database(): void
+    {
+        // First create a keypair and export it
+        $service1 = new dpop_service();
+        $keypair1 = $service1->getKeypair();
+        $exported = $service1->exportKeypair();
+
+        // Create a mock database that returns the keypair
+        $db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn([
+            'config_value' => $exported,  // Unencrypted for this test
+        ]);
+        $db->method('sql_freeresult')->willReturn(true);
+        $db->method('sql_escape')->willReturnCallback(fn ($s) => $s);
+
+        // Create service with database (no encryption)
+        $service2 = new dpop_service($db, null, 'phpbb_');
+        $keypair2 = $service2->getKeypair();
+
+        // Should load same keypair from database
+        $this->assertEquals($keypair1['jwk']['x'], $keypair2['jwk']['x']);
+        $this->assertEquals($keypair1['jwk']['y'], $keypair2['jwk']['y']);
+    }
+
+    public function test_generates_keypair_when_database_empty(): void
+    {
+        $db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn(false);  // No stored keypair
+        $db->method('sql_freeresult')->willReturn(true);
+        $db->method('sql_escape')->willReturnCallback(fn ($s) => $s);
+
+        $service = new dpop_service($db, null, 'phpbb_');
+        $keypair = $service->getKeypair();
+
+        // Should generate a new keypair
+        $this->assertArrayHasKey('private', $keypair);
+        $this->assertArrayHasKey('public', $keypair);
+        $this->assertArrayHasKey('jwk', $keypair);
+        $this->assertEquals('EC', $keypair['jwk']['kty']);
+    }
+
+    public function test_handles_database_exception_gracefully(): void
+    {
+        $db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+        $db->method('sql_query')->willThrowException(new \RuntimeException('Database error'));
+
+        $service = new dpop_service($db, null, 'phpbb_');
+        $keypair = $service->getKeypair();
+
+        // Should generate a new keypair when database fails
+        $this->assertArrayHasKey('jwk', $keypair);
+        $this->assertEquals('EC', $keypair['jwk']['kty']);
+    }
+
+    public function test_loads_encrypted_keypair_from_database(): void
+    {
+        // Set up encryption keys
+        $originalKeys = getenv('ATPROTO_TOKEN_ENCRYPTION_KEYS');
+        $originalVersion = getenv('ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION');
+
+        $testKey = base64_encode(random_bytes(32));
+        putenv('ATPROTO_TOKEN_ENCRYPTION_KEYS=' . json_encode(['v1' => $testKey]));
+        putenv('ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION=v1');
+
+        try {
+            // Create encryption service and a keypair
+            $encryption = new \phpbb\atproto\auth\token_encryption();
+            $service1 = new dpop_service();
+            $keypair1 = $service1->getKeypair();
+            $exported = $service1->exportKeypair();
+            $encrypted = $encryption->encrypt($exported);
+
+            // Mock database returning encrypted keypair
+            $db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+            $db->method('sql_query')->willReturn(true);
+            $db->method('sql_fetchrow')->willReturn([
+                'config_value' => $encrypted,
+            ]);
+            $db->method('sql_freeresult')->willReturn(true);
+            $db->method('sql_escape')->willReturnCallback(fn ($s) => $s);
+
+            // Create service with database and encryption
+            $service2 = new dpop_service($db, $encryption, 'phpbb_');
+            $keypair2 = $service2->getKeypair();
+
+            // Should decrypt and load same keypair
+            $this->assertEquals($keypair1['jwk']['x'], $keypair2['jwk']['x']);
+            $this->assertEquals($keypair1['jwk']['y'], $keypair2['jwk']['y']);
+        } finally {
+            // Restore original env
+            if ($originalKeys !== false) {
+                putenv('ATPROTO_TOKEN_ENCRYPTION_KEYS=' . $originalKeys);
+            } else {
+                putenv('ATPROTO_TOKEN_ENCRYPTION_KEYS');
+            }
+            if ($originalVersion !== false) {
+                putenv('ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION=' . $originalVersion);
+            } else {
+                putenv('ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION');
+            }
+        }
+    }
+
+    public function test_handles_empty_config_value(): void
+    {
+        $db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+        $db->method('sql_query')->willReturn(true);
+        $db->method('sql_fetchrow')->willReturn([
+            'config_value' => '',  // Empty value
+        ]);
+        $db->method('sql_freeresult')->willReturn(true);
+        $db->method('sql_escape')->willReturnCallback(fn ($s) => $s);
+
+        $service = new dpop_service($db, null, 'phpbb_');
+        $keypair = $service->getKeypair();
+
+        // Should generate new keypair when config_value is empty
+        $this->assertArrayHasKey('jwk', $keypair);
+        $this->assertEquals('EC', $keypair['jwk']['kty']);
+    }
 }
