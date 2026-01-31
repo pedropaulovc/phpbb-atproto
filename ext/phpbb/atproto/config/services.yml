@@ -3,6 +3,11 @@ services:
     phpbb.atproto.token_encryption:
         class: phpbb\atproto\auth\token_encryption
 
+    # DPoP service for token binding (AT Protocol requirement)
+    phpbb.atproto.auth.dpop_service:
+        class: phpbb\atproto\auth\dpop_service
+        arguments: []
+
     # DID resolution service
     phpbb.atproto.did_resolver:
         class: phpbb\atproto\services\did_resolver
