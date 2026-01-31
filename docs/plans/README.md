@@ -6,7 +6,8 @@ Detailed, task-level implementation plans for building phpBB on AT Protocol.
 
 | Phase | Directory | Focus | Status |
 |-------|-----------|-------|--------|
-| 1 | [01-foundation/](./01-foundation/) | Extension skeleton, migrations, OAuth | In Progress |
+| 0 | [03-environment-setup.md](./03-environment-setup.md) | Dev environment, tooling, Docker | Ready |
+| 1 | [10-foundation/](./10-foundation/) | Extension skeleton, migrations, OAuth | In Progress |
 | 2 | 02-write-path/ | Post creation -> user PDS | Pending |
 | 3 | 03-forum-pds/ | Forum config on AT Protocol | Pending |
 | 4 | 04-sync-service/ | Firehose client, event processing | Pending |
