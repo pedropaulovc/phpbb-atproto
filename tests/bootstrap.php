@@ -7,6 +7,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/stubs/phpbb_extension_base.php';
 require_once __DIR__ . '/stubs/phpbb_migration.php';
 require_once __DIR__ . '/stubs/phpbb_cache_driver.php';
+require_once __DIR__ . '/stubs/phpbb_db_driver.php';
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
