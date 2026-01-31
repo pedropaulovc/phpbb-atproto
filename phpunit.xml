@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         verbose="true"
+         failOnWarning="true"
+         failOnRisky="true">
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/unit</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">ext/phpbb/atproto</directory>
+        </include>
+        <exclude>
+            <directory>ext/phpbb/atproto/migrations</directory>
+        </exclude>
+        <report>
+            <html outputDirectory="tests/coverage"/>
+            <text outputFile="php://stdout"/>
+        </report>
+    </coverage>
+    <php>
+        <env name="ATPROTO_TOKEN_ENCRYPTION_KEYS" value='{"v1":"dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3Q="}'/>
+        <env name="ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION" value="v1"/>
+    </php>
+</phpunit>

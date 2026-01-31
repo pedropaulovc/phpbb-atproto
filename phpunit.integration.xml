@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.integration.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="integration">
+            <directory>tests/integration</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="TEST_DB_HOST" value="db-test"/>
+        <env name="TEST_DB_NAME" value="phpbb_test"/>
+        <env name="TEST_DB_USER" value="phpbb_test"/>
+        <env name="TEST_DB_PASS" value="test_password"/>
+        <env name="ATPROTO_TOKEN_ENCRYPTION_KEYS" value='{"v1":"dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3Q="}'/>
+        <env name="ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION" value="v1"/>
+    </php>
+</phpunit>
