@@ -16,6 +16,7 @@ package-lock.json
 /tests/e2e/test-results/
 /tests/e2e/playwright-report/
 /.phpunit.result.cache
+/.playwright-cli/
 
 # IDE
 /.idea/
