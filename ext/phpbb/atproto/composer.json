@@ -11,14 +11,17 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
-        "ext-sodium": "*",
-        "guzzlehttp/guzzle": "^7.0"
+        "php": ">=8.4"
     },
     "extra": {
         "display-name": "AT Protocol Integration",
         "soft-require": {
             "phpbb/phpbb": ">=3.3.0,<4.0"
+        },
+        "version-check": {
+            "host": "github.com",
+            "directory": "/pedropaulovc/phpbb-atproto",
+            "filename": "version.json"
         }
     }
 }

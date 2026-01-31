@@ -9,6 +9,7 @@
     <testsuites>
         <testsuite name="unit">
             <directory>tests/unit</directory>
+            <directory>tests/ext</directory>
         </testsuite>
     </testsuites>
     <coverage processUncoveredFiles="true">

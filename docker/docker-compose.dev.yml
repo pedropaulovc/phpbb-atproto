@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     volumes:
-      - ../ext:/var/www/html/ext/phpbb/atproto:cached
+      - ../ext/phpbb/atproto:/var/www/html/ext/phpbb/atproto:cached
       - ../tests:/var/www/html/tests:cached
       - ../vendor:/var/www/html/vendor:cached
       - ../composer.json:/var/www/html/composer.json:cached
