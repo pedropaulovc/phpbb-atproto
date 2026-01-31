@@ -1,0 +1,26 @@
+{
+    "name": "phpBB AT Protocol Extension",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "workspaceFolder": "/workspaces/phpbb",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "remote.localPortHost": "allInterfaces",
+                "php.validate.executablePath": "/usr/bin/php8.2"
+            },
+            "extensions": [
+                "xdebug.php-debug",
+                "bmewburn.vscode-intelephense-client",
+                "EditorConfig.EditorConfig"
+            ]
+        }
+    },
+    "forwardPorts": [8080, 9003],
+    "postCreateCommand": "bash .devcontainer/setup.sh",
+    "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    }
+}

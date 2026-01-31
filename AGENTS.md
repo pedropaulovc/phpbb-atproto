@@ -57,7 +57,14 @@ Examples:
 
 **All Claude sessions MUST verify environment before coding work.**
 
-### Quick Verification
+### Environment Options
+
+| Method | When to Use |
+|--------|-------------|
+| **Docker Compose** | Default for local development |
+| **Dev Container** | When working in VS Code or Codespaces |
+
+### Quick Verification (Docker Compose)
 
 ```bash
 # Verify Docker is running
@@ -68,6 +75,19 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exe
 
 # Verify test configuration
 docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb vendor/bin/phpunit --version
+```
+
+### Quick Verification (Dev Container)
+
+```bash
+# Check if running inside Dev Container
+echo $REMOTE_CONTAINERS  # Should be "true" if in container
+
+# Verify phpBB is installed
+curl -s http://localhost:8080/ | grep -o "AT Protocol Test Forum"
+
+# Verify MySQL is running
+sudo service mysql status
 ```
 
 ### Environment Architecture
@@ -85,9 +105,15 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exe
 
 ### Starting Fresh Session
 
+**Option A: Docker Compose (default)**
 1. Start environment: `./scripts/dev-up.sh`
 2. Verify services: `docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps`
 3. Run quick test: `./scripts/test.sh lint`
+
+**Option B: Dev Container / Codespaces**
+1. Open in VS Code and reopen in container, or use GitHub Codespaces
+2. Environment auto-starts (phpBB at http://localhost:8080)
+3. Run quick test: `cd /workspaces/phpbb-core/phpBB && php vendor/bin/phpunit`
 
 ### Test Commands
 

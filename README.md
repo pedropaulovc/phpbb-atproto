@@ -1,5 +1,7 @@
 # phpBB on AT Protocol
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/pedropaulovc/phpbb-atproto)
+
 A project to port phpBB bulletin board to use AT Protocol as its data backend.
 
 ## Architecture
@@ -77,19 +79,28 @@ phpbb-atproto/
 
 ## Development Setup
 
-### Prerequisites
+### Option 1: GitHub Codespaces (Recommended)
 
-**Windows (Host Machine):**
+**Zero setup required** - click the badge above or:
+
+1. Go to repository → "Code" → "Codespaces" → "Create codespace on main"
+2. Wait ~2 minutes for environment to build
+3. Access phpBB at the forwarded port 8080
+4. Login: `admin` / `adminadmin`
+
+### Option 2: VS Code Dev Container
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [VS Code](https://code.visualstudio.com/) with [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Clone and open: `git clone https://github.com/pedropaulovc/phpbb-atproto.git && code phpbb-atproto`
+3. Click "Reopen in Container" when prompted
+4. Access phpBB at http://localhost:8080 (`admin` / `adminadmin`)
+
+### Option 3: Docker Compose (Local)
+
+**Prerequisites:**
 - Docker Desktop 4.x+ with WSL2 backend
 - Git 2.x+ with Git Bash
 - Node.js 20.x+ LTS
-
-**Installed via Docker:**
-- PHP 8.2+ with extensions: sodium, pdo_mysql, gd, zip, opcache, xdebug
-- MySQL 8.0
-- Composer 2.x, PHPUnit 9.x, PHP-CS-Fixer 3.x, PHPStan 1.x
-
-### Quick Start
 
 ```bash
 # Clone repository

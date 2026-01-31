@@ -2,7 +2,81 @@
 
 Complete guide to setting up and using the phpBB AT Protocol development environment.
 
-## Prerequisites
+## Quick Start Options
+
+| Method | Best For | Setup Time |
+|--------|----------|------------|
+| [GitHub Codespaces](#github-codespaces) | Zero setup, cloud development | ~2 minutes |
+| [VS Code Dev Container](#vs-code-dev-container) | Local development with VS Code | ~3 minutes |
+| [Docker Compose](#docker-compose-local) | Local development, custom setup | ~5 minutes |
+
+---
+
+## GitHub Codespaces
+
+**Recommended for quick start - no local setup required.**
+
+1. Click the button below or go to the repository and click "Code" → "Codespaces" → "Create codespace on main"
+
+   [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/pedropaulovc/phpbb-atproto)
+
+2. Wait for the environment to build (~2 minutes)
+3. The phpBB forum will be available at the forwarded port 8080
+4. Login: `admin` / `adminadmin`
+
+**What's included:**
+- PHP 8.2 with all required extensions
+- MySQL 8.0 with phpBB database
+- Apache web server
+- Xdebug for debugging
+- GitHub CLI
+
+---
+
+## VS Code Dev Container
+
+**Recommended for local development with VS Code.**
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 4.x+
+- [VS Code](https://code.visualstudio.com/) with [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/pedropaulovc/phpbb-atproto.git
+   cd phpbb-atproto
+   ```
+
+2. Open in VS Code:
+   ```bash
+   code .
+   ```
+
+3. When prompted "Reopen in Container", click **Yes**
+   - Or press `F1` → "Dev Containers: Reopen in Container"
+
+4. Wait for the container to build and phpBB to install (~3 minutes first time)
+
+5. Access phpBB at http://localhost:8080
+   - Login: `admin` / `adminadmin`
+
+### Dev Container Features
+
+- **Hot reload**: Edit code in `ext/phpbb/atproto/`, changes are immediate
+- **Debugging**: Xdebug pre-configured on port 9003
+- **Extensions**: PHP Intelephense, Xdebug, EditorConfig pre-installed
+- **Terminal**: Full bash access inside container
+
+---
+
+## Docker Compose (Local)
+
+**For custom setups or when not using VS Code.**
+
+### Prerequisites
 
 ### Windows (Host Machine)
 
@@ -24,7 +98,7 @@ Complete guide to setting up and using the phpBB AT Protocol development environ
 - PHP-CS-Fixer 3.x
 - PHPStan 1.x
 
-## Quick Start
+### Quick Start
 
 ```bash
 # Clone repository
