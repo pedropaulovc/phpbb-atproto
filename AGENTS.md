@@ -52,3 +52,53 @@ Examples:
 4. Verify - all changes committed AND pushed
 
 **Never say "ready to push when you are" - YOU must push.**
+
+## Environment Setup
+
+**All Claude sessions MUST verify environment before coding work.**
+
+### Quick Verification
+
+```bash
+# Verify Docker is running
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps
+
+# Verify PHP dependencies
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb composer show | head -5
+
+# Verify test configuration
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb vendor/bin/phpunit --version
+```
+
+### Environment Architecture
+
+| Component | Location | How to Run |
+|-----------|----------|------------|
+| PHP runtime | Docker `phpbb` service | `docker compose exec phpbb php ...` |
+| MySQL | Docker `db` service | `docker compose exec db mysql ...` |
+| Unit tests | Docker | `./scripts/test.sh unit` |
+| Integration tests | Docker | `./scripts/test.sh integration` |
+| E2E tests | Windows Node.js | `cd tests/e2e && npm test` |
+| Linting | Docker | `./scripts/test.sh lint` |
+
+### Starting Fresh Session
+
+1. Start environment: `./scripts/dev-up.sh`
+2. Verify services: `docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps`
+3. Run quick test: `./scripts/test.sh lint`
+
+### PHP Tooling Reference
+
+| Tool | Purpose | Command |
+|------|---------|---------|
+| PHPUnit | Unit/integration tests | `vendor/bin/phpunit` |
+| PHP-CS-Fixer | Code style | `vendor/bin/php-cs-fixer fix` |
+| PHPStan | Static analysis | `vendor/bin/phpstan analyse` |
+| Composer | Dependencies | `composer install/update/require` |
+
+### Windows-Specific Notes
+
+- Use bash scripts via Git Bash or WSL
+- Node.js runs natively on Windows for E2E tests
+- Docker Desktop must be running
+- File paths in JS/TS use Windows style: `C:\\path\\to\\file`
