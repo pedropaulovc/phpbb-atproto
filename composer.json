@@ -2,7 +2,7 @@
     "name": "pedropaulovc/phpbb-atproto-dev",
     "description": "Development environment for phpBB AT Protocol integration",
     "type": "project",
-    "license": "GPL-2.0-only",
+    "license": "MIT",
     "require": {
         "php": ">=8.2"
     },
