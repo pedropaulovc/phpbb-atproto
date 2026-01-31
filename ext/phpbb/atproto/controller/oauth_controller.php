@@ -107,9 +107,9 @@ class oauth_controller
             ];
         }
 
-        // Validate state parameter
+        // Validate state parameter (use hash_equals for timing-safe comparison)
         $expectedState = $session['atproto_oauth_state'] ?? '';
-        if (empty($state) || $state !== $expectedState) {
+        if (empty($state) || empty($expectedState) || !hash_equals($expectedState, $state)) {
             $this->clearSessionVars($session);
 
             return [
