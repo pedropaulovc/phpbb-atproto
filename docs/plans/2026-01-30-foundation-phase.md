@@ -10,6 +10,55 @@
 
 ---
 
+## Prerequisites
+
+- Docker environment running (`docker/` setup)
+- Lexicons already defined (10 files in `lexicons/`)
+- Specifications complete in `specs/components/`
+
+---
+
+## Task Dependencies
+
+```
+Task 1 (Skeleton) ──┬──> Task 2 (Services Config)
+                    │
+                    └──> Task 3 (Migrations)
+                    │
+                    └──> Task 4 (Encryption) ──> Task 7 (Token Manager)
+                    │                                   │
+                    └──> Task 5 (DID Resolver) ─────────┼──> Task 6 (OAuth Client)
+                                                        │           │
+                                                        └───────────┴──> Task 8 (Controller)
+                                                                                │
+                                                                                └──> Task 9 (Event Listener)
+                                                                                        │
+                                                                                        └──> Task 10-11 (Language/Templates)
+                                                                                                │
+                                                                                                └──> Task 12-13 (Integration/Verification)
+```
+
+**Critical path:** Tasks 1 → 3 → 4 → 7 → 6 → 8 → 9 → 12
+
+---
+
+## Environment Configuration
+
+Required environment variables:
+```bash
+ATPROTO_TOKEN_ENCRYPTION_KEYS='{"v1":"base64-encoded-32-byte-key"}'
+ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION='v1'
+ATPROTO_CLIENT_ID='https://your-forum.com/client-metadata.json'
+```
+
+Optional:
+```bash
+ATPROTO_TOKEN_REFRESH_BUFFER=300  # seconds before expiry to refresh
+ATPROTO_DID_CACHE_TTL=3600        # DID document cache TTL
+```
+
+---
+
 ## Task 1: Extension Skeleton Files
 
 **Files:**
@@ -3351,3 +3400,13 @@ After completing all tasks:
 | 12 | `tests/integration/AuthFlowTest.php` |
 
 **Total: ~20 source files + ~12 test files**
+
+---
+
+## Reference Files
+
+- `specs/components/phpbb-extension/migrations.md` - Full migration spec with table schemas
+- `specs/components/phpbb-extension/auth-provider.md` - Auth flow spec with interfaces
+- `specs/components/phpbb-extension/write-interceptor.md` - Write path (next phase)
+- `docs/api-contracts.md` - Interface definitions
+- `lexicons/` - AT Protocol lexicon definitions (10 files)
