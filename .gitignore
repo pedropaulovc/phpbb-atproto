@@ -36,3 +36,6 @@ package-lock.json
 # Test coverage
 /coverage/
 .phpunit.result.cache
+
+# Git worktrees
+.worktrees/
