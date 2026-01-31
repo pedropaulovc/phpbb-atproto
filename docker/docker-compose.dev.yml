@@ -11,6 +11,7 @@ services:
     environment:
       XDEBUG_MODE: debug
       XDEBUG_CONFIG: client_host=host.docker.internal
+      # Test encryption keys for local development only - DO NOT use in production
       ATPROTO_TOKEN_ENCRYPTION_KEYS: '{"v1":"dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3Q="}'
       ATPROTO_TOKEN_ENCRYPTION_KEY_VERSION: v1
 
