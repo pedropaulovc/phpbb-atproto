@@ -43,21 +43,30 @@ class ConfigTest extends TestCase
         $content = file_get_contents($path);
         $this->assertNotFalse($content);
 
+        // Foundation Phase services (Phase 1)
         $requiredServices = [
             'phpbb.atproto.token_encryption',
             'phpbb.atproto.did_resolver',
             'phpbb.atproto.oauth_client',
             'phpbb.atproto.token_manager',
-            'phpbb.atproto.pds_client',
-            'phpbb.atproto.uri_mapper',
-            'phpbb.atproto.queue_manager',
-            'phpbb.atproto.record_builder',
             'phpbb.atproto.controller.oauth',
             'phpbb.atproto.event.auth_listener',
         ];
 
         foreach ($requiredServices as $service) {
             $this->assertStringContainsString($service . ':', $content, "Missing service: $service");
+        }
+
+        // Phase 2 services (Write Path) - should be commented as placeholders
+        $phase2Services = [
+            'pds_client',
+            'uri_mapper',
+            'queue_manager',
+            'record_builder',
+        ];
+
+        foreach ($phase2Services as $service) {
+            $this->assertStringContainsString($service, $content, "Missing Phase 2 placeholder: $service");
         }
     }
 

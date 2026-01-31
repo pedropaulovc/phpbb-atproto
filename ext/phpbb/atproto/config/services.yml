@@ -28,55 +28,26 @@ services:
             - '%core.table_prefix%'
             - '%atproto.token_refresh_buffer%'
 
-    # PDS client for AT Protocol API calls
-    phpbb.atproto.pds_client:
-        class: phpbb\atproto\services\pds_client
-        arguments:
-            - '@phpbb.atproto.token_manager'
-            - '@phpbb.atproto.did_resolver'
-
-    # URI mapper for AT URI <-> phpBB ID
-    phpbb.atproto.uri_mapper:
-        class: phpbb\atproto\services\uri_mapper
-        arguments:
-            - '@dbal.conn'
-            - '%core.table_prefix%'
-
-    # Queue manager for retry failed writes
-    phpbb.atproto.queue_manager:
-        class: phpbb\atproto\services\queue_manager
-        arguments:
-            - '@dbal.conn'
-            - '%core.table_prefix%'
-
-    # Record builder for AT Protocol records
-    phpbb.atproto.record_builder:
-        class: phpbb\atproto\services\record_builder
-        arguments:
-            - '@phpbb.atproto.uri_mapper'
-
     # OAuth callback controller
     phpbb.atproto.controller.oauth:
         class: phpbb\atproto\controller\oauth_controller
         arguments:
             - '@phpbb.atproto.oauth_client'
             - '@phpbb.atproto.token_manager'
-            - '@user'
-            - '@auth'
-            - '@request'
-            - '@template'
-            - '@config'
 
     # Auth event listener
     phpbb.atproto.event.auth_listener:
         class: phpbb\atproto\event\auth_listener
         arguments:
             - '@phpbb.atproto.token_manager'
-            - '@user'
-            - '@dbal.conn'
-            - '%core.table_prefix%'
         tags:
             - { name: event.listener }
+
+    # Phase 2 services (Write Path) - to be implemented
+    # phpbb.atproto.pds_client
+    # phpbb.atproto.uri_mapper
+    # phpbb.atproto.queue_manager
+    # phpbb.atproto.record_builder
 
 parameters:
     atproto.client_id: '%env(ATPROTO_CLIENT_ID)%'
