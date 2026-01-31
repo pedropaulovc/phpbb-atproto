@@ -6,7 +6,7 @@
 
 **Architecture:** A phpBB extension (`ext/phpbb/atproto/`) that provides DID-based authentication via AT Protocol OAuth. Tokens are encrypted at rest using XChaCha20-Poly1305 with key rotation support. The extension hooks into phpBB's authentication events and provides services for token management, DID resolution, and PDS communication.
 
-**Tech Stack:** PHP 7.4+, phpBB 3.3.x extension framework, Sodium for encryption, HTTP client for OAuth/DID resolution.
+**Tech Stack:** PHP 8.4+, phpBB 3.3.x extension framework, Sodium for encryption, HTTP client for OAuth/DID resolution.
 
 ---
 
@@ -111,7 +111,7 @@ Expected: FAIL with "Class '\phpbb\atproto\ext' not found"
         }
     ],
     "require": {
-        "php": ">=7.4"
+        "php": ">=8.4"
     },
     "extra": {
         "display-name": "AT Protocol Integration",
@@ -142,7 +142,7 @@ class ext extends \phpbb\extension\base
      */
     public function is_enableable()
     {
-        return extension_loaded('sodium') && PHP_VERSION_ID >= 70400;
+        return extension_loaded('sodium') && PHP_VERSION_ID >= 80400;
     }
 
     /**
@@ -184,7 +184,7 @@ git commit -m "$(cat <<'EOF'
 feat(atproto): add extension skeleton with composer.json and ext.php
 
 - Create phpbb/atproto extension structure
-- Require PHP 7.4+ and sodium extension for token encryption
+- Require PHP 8.4+ and sodium extension for token encryption
 - Add basic extension test
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
