@@ -198,8 +198,12 @@ class oauth_controller
      */
     private function showSuccess(string $handle): Response
     {
-        trigger_error($this->language->lang('ATPROTO_LOGIN_SUCCESS') . '<br /><br />' .
-            sprintf($this->language->lang('RETURN_INDEX'), '<a href="' . append_sid("{$this->helper->get_phpbb_root_path()}index.php") . '">', '</a>'));
+        $this->template->assign_vars([
+            'ATPROTO_SUCCESS_MESSAGE' => $this->language->lang('ATPROTO_LOGIN_SUCCESS'),
+            'U_INDEX' => append_sid("{$this->helper->get_phpbb_root_path()}index.php"),
+        ]);
+
+        return $this->helper->render('atproto_success.html', $this->language->lang('ATPROTO_LOGIN_SUCCESS'));
     }
 
     /**

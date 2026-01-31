@@ -18,7 +18,6 @@ class OAuthClientTest extends TestCase
     {
         $mock = $this->createMock(dpop_service_interface::class);
         $mock->method('createProof')->willReturn('mock.dpop.proof');
-        $mock->method('createProofWithNonce')->willReturn('mock.dpop.proof.with.nonce');
         $mock->method('getPublicJwk')->willReturn([
             'kty' => 'EC',
             'crv' => 'P-256',

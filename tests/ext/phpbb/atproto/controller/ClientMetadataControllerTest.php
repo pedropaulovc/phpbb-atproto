@@ -11,16 +11,14 @@ use PHPUnit\Framework\TestCase;
 
 class ClientMetadataControllerTest extends TestCase
 {
-    private function createConfigMock(): config
+    private function createConfig(): config
     {
-        $config = $this->createMock(config::class);
-        $config->method('offsetGet')->willReturnMap([
-            ['server_name', 'forum.example.com'],
-            ['server_protocol', 'https://'],
-            ['script_path', '/'],
-            ['sitename', 'Example Forum'],
+        return new config([
+            'server_name' => 'forum.example.com',
+            'server_protocol' => 'https://',
+            'script_path' => '/',
+            'sitename' => 'Example Forum',
         ]);
-        return $config;
     }
 
     private function createDpopServiceMock(): dpop_service_interface
@@ -44,7 +42,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_returns_valid_client_metadata(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -76,7 +74,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_client_id_matches_metadata_url(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -96,7 +94,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_includes_dpop_public_key(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
 
         $testJwk = [
             'kty' => 'EC',
@@ -128,7 +126,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_token_endpoint_auth_method_is_none(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -147,7 +145,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_dpop_bound_access_tokens_is_true(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -166,7 +164,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_includes_correct_grant_types(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -185,7 +183,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_includes_correct_response_types(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -203,7 +201,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_includes_atproto_scope(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -221,7 +219,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_response_has_cache_headers(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(
@@ -239,7 +237,7 @@ class ClientMetadataControllerTest extends TestCase
 
     public function test_client_name_includes_sitename(): void
     {
-        $config = $this->createConfigMock();
+        $config = $this->createConfig();
         $dpopService = $this->createDpopServiceMock();
 
         $controller = new client_metadata_controller(

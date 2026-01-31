@@ -18,8 +18,8 @@ class ExtensionTest extends TestCase
         $ext = new \phpbb\atproto\ext();
 
         // is_enableable returns true only if sodium extension is loaded
-        // AND PHP version is 8.4+
-        $expected = extension_loaded('sodium') && PHP_VERSION_ID >= 80400;
+        // AND PHP version is 8.2+
+        $expected = extension_loaded('sodium') && PHP_VERSION_ID >= 80200;
         $this->assertSame($expected, $ext->is_enableable());
     }
 
