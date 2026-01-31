@@ -283,6 +283,108 @@ rm -rf vendor
 docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb composer install
 ```
 
+### phpBB Cache Issues
+
+After modifying `services.yml`, templates, or language files:
+
+```bash
+# Clear phpBB cache
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb rm -rf /var/www/html/cache/production/*
+
+# If changes still don't appear, restart the container
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml restart phpbb
+```
+
+## Extension Development Tips
+
+### phpBB 3.3.x Compatibility
+
+phpBB 3.3.x uses **Symfony 3.x**, which has important differences from newer versions:
+
+#### Services Configuration (services.yml)
+
+**DON'T use `%env()%` syntax** - it's not supported in Symfony 3.x:
+
+```yaml
+# WRONG - will cause "non-existent parameter" error
+parameters:
+    atproto.client_id: '%env(ATPROTO_CLIENT_ID)%'
+
+# CORRECT - use static defaults
+parameters:
+    atproto.client_id: 'http://localhost:8080/'
+```
+
+#### Event Listeners
+
+Event listener methods must accept `Symfony\Component\EventDispatcher\Event`, not `phpbb\event\data`:
+
+```php
+// WRONG - will cause TypeError
+public function onUserSetup(\phpbb\event\data $event): void
+
+// CORRECT
+use Symfony\Component\EventDispatcher\Event;
+public function onUserSetup(Event $event): void
+```
+
+#### Extension composer.json
+
+Required fields for phpBB to detect your extension:
+
+```json
+{
+    "name": "vendor/extension",
+    "type": "phpbb-extension",
+    "version": "1.0.0-dev",  // Required for detection
+    "require": {
+        "php": ">=8.2"  // Match your container's PHP version
+    }
+}
+```
+
+### Common Pitfalls
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Extension not appearing in ACP | Missing `version` in composer.json | Add `"version": "1.0.0-dev"` |
+| "Class not found" for Symfony classes | Local vendor overwriting phpBB's vendor | Don't mount local vendor directory |
+| Language strings showing as keys | Language file not loaded | Add listener for `core.user_setup` event |
+| Template variables empty | No listener setting them | Add listener for `core.page_header_after` |
+| Changes not appearing | Cached container | Clear cache and restart container |
+| Controller returning array error | Wrong return type | Controllers must return `Response` objects |
+
+### Development Workflow
+
+1. **Make code changes** in `ext/phpbb/atproto/`
+2. **Clear cache** after services.yml or template changes:
+   ```bash
+   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb rm -rf /var/www/html/cache/production/*
+   ```
+3. **Restart container** if changes still don't appear:
+   ```bash
+   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml restart phpbb
+   ```
+4. **Check logs** for PHP errors:
+   ```bash
+   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml logs -f phpbb
+   ```
+
+### Volume Mounts
+
+The dev container mounts the extension directory but **not the vendor directory**:
+
+```yaml
+# docker-compose.dev.yml
+volumes:
+  - ../ext/phpbb/atproto:/var/www/html/ext/phpbb/atproto:cached
+  # Do NOT mount vendor - it would overwrite phpBB's Symfony 3.x packages
+```
+
+This ensures phpBB's dependencies (Symfony 3.x) aren't overwritten by your local Composer packages.
+
+---
+
 ## Environment Variables
 
 The development environment uses these environment variables (configured in `docker/docker-compose.dev.yml`):
