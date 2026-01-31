@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.2-apache as base
 
 # Install PHP extensions required by phpBB
 RUN apt-get update && apt-get install -y \
@@ -34,6 +34,56 @@ RUN curl -L "https://download.phpbb.com/pub/release/3.3/${PHPBB_VERSION}/phpBB-$
     && chmod -R 755 /var/www/html
 
 # Set working directory
+WORKDIR /var/www/html
+
+EXPOSE 80
+
+# Development stage with Xdebug and Composer
+FROM php:8.2-apache as dev
+
+# Install PHP extensions required by phpBB
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libsodium-dev \
+    unzip \
+    curl \
+    git \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd mysqli pdo_mysql zip opcache sodium \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Xdebug
+RUN pecl install xdebug && docker-php-ext-enable xdebug
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Enable Apache modules
+RUN a2enmod rewrite
+
+# Set PHP configuration for development
+RUN { \
+    echo 'upload_max_filesize = 10M'; \
+    echo 'post_max_size = 10M'; \
+    echo 'memory_limit = 512M'; \
+    echo 'max_execution_time = 300'; \
+    echo 'display_errors = On'; \
+    echo 'error_reporting = E_ALL'; \
+} > /usr/local/etc/php/conf.d/phpbb-dev.ini
+
+# Download and extract phpBB
+ARG PHPBB_VERSION=3.3.14
+RUN curl -L "https://download.phpbb.com/pub/release/3.3/${PHPBB_VERSION}/phpBB-${PHPBB_VERSION}.zip" -o /tmp/phpbb.zip \
+    && unzip /tmp/phpbb.zip -d /tmp \
+    && rm -rf /var/www/html/* \
+    && mv /tmp/phpBB3/* /var/www/html/ \
+    && rm -rf /tmp/phpbb.zip /tmp/phpBB3 \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
+
 WORKDIR /var/www/html
 
 EXPOSE 80
