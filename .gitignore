@@ -51,3 +51,7 @@ docker/*.sql
 
 # Worktrees
 /.worktrees/
+
+# Vagrant
+/.vagrant/
+Vagrantfile
