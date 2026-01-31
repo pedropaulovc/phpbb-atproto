@@ -1,0 +1,44 @@
+{
+    "name": "pedropaulovc/phpbb-atproto-dev",
+    "description": "Development environment for phpBB AT Protocol integration",
+    "type": "project",
+    "license": "GPL-2.0-only",
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "phpstan/phpstan": "^1.12",
+        "vimeo/psalm": "^5.26"
+    },
+    "autoload": {
+        "psr-4": {
+            "phpbb\\atproto\\": "ext/phpbb/atproto/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "phpbb\\atproto\\tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit -c phpunit.integration.xml",
+        "lint": "php-cs-fixer fix --dry-run --diff",
+        "lint:fix": "php-cs-fixer fix",
+        "analyse": "phpstan analyse",
+        "check": [
+            "@lint",
+            "@analyse",
+            "@test"
+        ]
+    }
+}
