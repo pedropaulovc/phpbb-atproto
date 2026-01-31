@@ -90,4 +90,13 @@ interface token_manager_interface
      * @return string|null User's PDS URL or null if not linked
      */
     public function getUserPdsUrl(int $userId): ?string;
+
+    /**
+     * Find phpBB user ID by DID.
+     *
+     * @param string $did The AT Protocol DID to search for
+     *
+     * @return int|null The phpBB user ID or null if not found
+     */
+    public function findUserByDid(string $did): ?int;
 }
