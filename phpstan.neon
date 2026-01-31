@@ -1,0 +1,12 @@
+parameters:
+    level: 6
+    paths:
+        - ext/phpbb/atproto
+    excludePaths:
+        - ext/phpbb/atproto/migrations
+    checkMissingIterableValueType: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - '#Access to undefined constant IN_PHPBB#'
+        - '#Access to undefined constant PHPBB_ROOT_PATH#'
+        - '#Access to undefined constant PHP_EXT#'
