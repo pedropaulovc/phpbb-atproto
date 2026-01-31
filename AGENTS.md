@@ -37,6 +37,16 @@ Examples:
 | `writing-plans` | When you have specs/requirements for multi-step work |
 | `executing-plans` | When implementing from a written plan |
 | `verification-before-completion` | Before claiming work is done |
+| `playwright-cli` | For demos, manual validation, or accessing pages forbidden via WebFetch |
+
+## Playwright CLI Usage
+
+**Always use `--headed` flag** when invoking playwright-cli to allow visual observation.
+
+Use playwright-cli when:
+- WebFetch fails due to forbidden/authenticated pages
+- Demonstrating UI flows visually
+- Manual validation requiring browser interaction
 
 ## Session Completion
 
