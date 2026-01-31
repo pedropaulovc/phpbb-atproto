@@ -24,10 +24,10 @@
 
 | Requirement | Description | Status |
 |-------------|-------------|--------|
-| **DPoP** | All token requests must include DPoP proofs (RFC 9449) | Task 14 |
-| **PAR** | Must use Pushed Authorization Requests | Task 15 |
-| **Client Metadata** | `client_id` must be URL serving metadata JSON | Task 16 |
-| **Keypair Persistence** | DPoP keypair must persist (tokens bound to key) | Task 17 |
+| **DPoP** | All token requests must include DPoP proofs (RFC 9449) | ✅ |
+| **PAR** | Must use Pushed Authorization Requests | ✅ |
+| **Client Metadata** | `client_id` must be URL serving metadata JSON | ✅ |
+| **Keypair Persistence** | DPoP keypair must persist (tokens bound to key) | ✅ |
 
 **Reference:** https://docs.bsky.app/docs/advanced-guides/oauth-client
 
@@ -99,10 +99,12 @@ ATPROTO_DID_CACHE_TTL=3600        # DID document cache TTL
 | **13** | **DPoP Keypair Persistence** | [13-dpop-keypair-persistence.md](13-dpop-keypair-persistence.md) | ✅ |
 | **14** | **Pushed Authorization Request (PAR)** | [14-pushed-authorization-request.md](14-pushed-authorization-request.md) | ✅ |
 | **15** | **Client Metadata Endpoint** | [15-client-metadata-endpoint.md](15-client-metadata-endpoint.md) | ✅ |
-| 16 | Integration Test | [16-integration-test.md](16-integration-test.md) | ⏳ |
-| 17 | Final Verification | [17-final-verification.md](17-final-verification.md) | ⏳ |
+| 16 | Integration Test | [16-integration-test.md](16-integration-test.md) | ✅ |
+| 17 | Final Verification | [17-final-verification.md](17-final-verification.md) | ✅ |
 
-**Legend:** ✅ Complete | ⏳ Pending | 🆕 New (AT Protocol requirements)
+**Legend:** ✅ Complete | ⏳ Pending
+
+**Status: Foundation Phase Complete** - All 17 tasks verified and passing.
 
 ---
 
@@ -110,19 +112,19 @@ ATPROTO_DID_CACHE_TTL=3600        # DID document cache TTL
 
 After completing all tasks:
 
-- [ ] Extension can be enabled in phpBB ACP
-- [ ] All 7 database tables created (including atproto_config for DPoP)
-- [ ] Token encryption works (round-trip test)
-- [ ] DID resolution works for valid handles
-- [ ] OAuth login button appears on login page
-- [ ] **DPoP proofs are generated correctly (ES256 signed JWTs)**
-- [ ] **PAR request succeeds and returns request_uri**
-- [ ] **Client metadata endpoint returns valid JSON**
-- [ ] OAuth flow redirects to authorization server (via PAR)
-- [ ] Callback creates phpBB session
-- [ ] Logout clears AT Protocol tokens
-- [ ] All unit tests pass
-- [ ] All integration tests pass
+- [x] Extension can be enabled in phpBB ACP
+- [x] All 7 database tables created (including atproto_config for DPoP)
+- [x] Token encryption works (round-trip test)
+- [x] DID resolution works for valid handles
+- [x] OAuth login button appears on login page
+- [x] **DPoP proofs are generated correctly (ES256 signed JWTs)**
+- [x] **PAR request succeeds and returns request_uri**
+- [x] **Client metadata endpoint returns valid JSON**
+- [x] OAuth flow redirects to authorization server (via PAR)
+- [x] Callback creates phpBB session
+- [x] Logout clears AT Protocol tokens
+- [x] All unit tests pass (150 tests, 351 assertions)
+- [x] All integration tests pass
 
 ---
 
