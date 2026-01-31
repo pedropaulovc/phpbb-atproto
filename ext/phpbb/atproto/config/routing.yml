@@ -1,0 +1,9 @@
+phpbb_atproto_oauth_callback:
+    path: /atproto/callback
+    defaults:
+        _controller: phpbb.atproto.controller.oauth:callback
+
+phpbb_atproto_oauth_start:
+    path: /atproto/login
+    defaults:
+        _controller: phpbb.atproto.controller.oauth:start
