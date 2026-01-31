@@ -58,7 +58,7 @@ class oauth_controller
         $handle = $this->request->variable('handle', '', true);
         $error = '';
 
-        if ($this->request->is_set_post('submit') && !empty($handle)) {
+        if ($this->request->is_set_post('login') && !empty($handle)) {
             try {
                 $state = bin2hex(random_bytes(16));
                 $authResult = $this->oauthClient->getAuthorizationUrl($handle, $state);
