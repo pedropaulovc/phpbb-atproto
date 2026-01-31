@@ -501,5 +501,5 @@ class DisplayListener implements EventSubscriberInterface
 
 ## References
 - [phpBB Template Events](https://wiki.phpbb.com/Event_List)
-- [docs/moderation-flow.md](../../../docs/moderation-flow.md) - Label filtering
-- [docs/risks.md](../../../docs/risks.md) - D2: Sticky Moderation
+- [moderation-flow.md](../../moderation-flow.md) - Label filtering
+- [risks.md](../../risks.md) - D2: Sticky Moderation

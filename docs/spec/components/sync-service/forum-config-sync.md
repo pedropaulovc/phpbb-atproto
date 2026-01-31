@@ -534,6 +534,6 @@ class BootstrapSync implements BootstrapSyncInterface
 
 ## References
 - [phpBB Forum Management](https://area51.phpbb.com/docs/dev/3.3.x/)
-- [lexicons/net.vza.forum.board.json](../../../lexicons/net.vza.forum.board.json)
-- [lexicons/net.vza.forum.acl.json](../../../lexicons/net.vza.forum.acl.json)
-- [docs/architecture.md](../../../docs/architecture.md) - External Post Arrives flow
+- [net.vza.forum.board.json](../../lexicons/net.vza.forum.board.json)
+- [net.vza.forum.acl.json](../../lexicons/net.vza.forum.acl.json)
+- [architecture.md](../../architecture.md) - External Post Arrives flow

@@ -528,7 +528,7 @@ class BoardRecordBuilder implements BoardRecordBuilderInterface
 
 ## References
 - [phpBB ACP Events](https://wiki.phpbb.com/Event_List)
-- [lexicons/net.vza.forum.board.json](../../../lexicons/net.vza.forum.board.json)
-- [lexicons/net.vza.forum.acl.json](../../../lexicons/net.vza.forum.acl.json)
-- [docs/api-contracts.md](../../../docs/api-contracts.md) - ForumPdsClientInterface
-- [docs/risks.md](../../../docs/risks.md) - D3a: Multi-Instance Config Conflicts
+- [net.vza.forum.board.json](../../lexicons/net.vza.forum.board.json)
+- [net.vza.forum.acl.json](../../lexicons/net.vza.forum.acl.json)
+- [api-contracts.md](../../api-contracts.md) - ForumPdsClientInterface
+- [risks.md](../../risks.md) - D3a: Multi-Instance Config Conflicts

@@ -508,5 +508,5 @@ docker run --rm -v phpbb_data:/data -v $(pwd):/backup alpine \
 
 ## References
 - [Docker Compose Specification](https://docs.docker.com/compose/compose-file/)
-- [docs/architecture.md](../../docs/architecture.md) - Deployment topology
-- [docs/api-contracts.md](../../docs/api-contracts.md) - Docker configuration examples
+- [architecture.md](../architecture.md) - Deployment topology
+- [api-contracts.md](../api-contracts.md) - Docker configuration examples

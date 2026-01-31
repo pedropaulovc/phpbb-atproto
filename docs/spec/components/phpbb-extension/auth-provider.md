@@ -407,5 +407,5 @@ public function refreshToken(int $userId): string
 - [AT Protocol OAuth](https://atproto.com/specs/oauth)
 - [DID Resolution](https://atproto.com/specs/did)
 - [phpBB Auth Provider Tutorial](https://area51.phpbb.com/docs/dev/3.3.x/extensions/tutorial_authentication.html)
-- [docs/api-contracts.md](../../../docs/api-contracts.md) - TokenManagerInterface
-- [docs/risks.md](../../../docs/risks.md) - S1: Token Storage, S4: Token Refresh Race
+- [api-contracts.md](../../api-contracts.md) - TokenManagerInterface
+- [risks.md](../../risks.md) - S1: Token Storage, S4: Token Refresh Race

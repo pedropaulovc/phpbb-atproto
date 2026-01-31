@@ -691,5 +691,5 @@ jobs:
 ## References
 - [Playwright Documentation](https://playwright.dev/docs/intro)
 - Component specification files
-- [docs/architecture.md](../../docs/architecture.md) - System flows
-- [docs/moderation-flow.md](../../docs/moderation-flow.md) - Moderation scenarios
+- [architecture.md](../architecture.md) - System flows
+- [moderation-flow.md](../moderation-flow.md) - Moderation scenarios

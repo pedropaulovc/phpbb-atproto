@@ -427,5 +427,5 @@ class StateWriter implements StateWriterInterface
 - [AT Protocol Firehose](https://atproto.com/specs/sync#firehose)
 - [CBOR Specification](https://cbor.io/)
 - [Amphp WebSocket Client](https://amphp.org/websocket-client)
-- [docs/architecture.md](../../../docs/architecture.md) - Firehose Client description
-- [docs/risks.md](../../../docs/risks.md) - T2: Firehose Connection Drops
+- [architecture.md](../../architecture.md) - Firehose Client description
+- [risks.md](../../risks.md) - T2: Firehose Connection Drops

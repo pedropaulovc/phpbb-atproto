@@ -315,5 +315,5 @@ If running multiple forum instances:
 - [Ozone Documentation](https://github.com/bluesky-social/ozone)
 - [Labeler Service Lexicon](https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/labeler/service.json)
 - [AT Protocol Labels](https://atproto.com/specs/label)
-- [docs/moderation-flow.md](../../../docs/moderation-flow.md) - Full moderation architecture
-- [docs/architecture.md](../../../docs/architecture.md) - Labeler in system context
+- [moderation-flow.md](../../moderation-flow.md) - Full moderation architecture
+- [architecture.md](../../architecture.md) - Labeler in system context

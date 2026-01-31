@@ -243,5 +243,5 @@ SHOW INDEX FROM phpbb_atproto_labels;
 
 ## References
 - [phpBB Database Migrations](https://area51.phpbb.com/docs/dev/3.3.x/extensions/tutorial_migrations.html)
-- [docs/api-contracts.md](../../../docs/api-contracts.md) - Full SQL schemas
-- [docs/architecture.md](../../../docs/architecture.md) - Table purposes
+- [api-contracts.md](../../api-contracts.md) - Full SQL schemas
+- [architecture.md](../../architecture.md) - Table purposes

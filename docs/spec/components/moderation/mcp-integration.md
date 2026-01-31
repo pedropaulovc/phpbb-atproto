@@ -538,5 +538,5 @@ class OzoneClient implements OzoneClientInterface
 ## References
 - [phpBB MCP Module Development](https://area51.phpbb.com/docs/dev/3.3.x/)
 - [Ozone Moderation API](https://github.com/bluesky-social/ozone)
-- [docs/moderation-flow.md](../../../docs/moderation-flow.md) - Complete moderation flow
-- [docs/api-contracts.md](../../../docs/api-contracts.md) - LabelClientInterface
+- [moderation-flow.md](../../moderation-flow.md) - Complete moderation flow
+- [api-contracts.md](../../api-contracts.md) - LabelClientInterface

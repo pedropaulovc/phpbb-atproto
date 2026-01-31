@@ -554,6 +554,6 @@ class RecordBuilder implements RecordBuilderInterface
 ## References
 - [AT Protocol Repo Operations](https://atproto.com/specs/repo)
 - [phpBB Event System](https://area51.phpbb.com/docs/dev/3.3.x/extensions/tutorial_events.html)
-- [lexicons/net.vza.forum.post.json](../../../lexicons/net.vza.forum.post.json)
-- [docs/api-contracts.md](../../../docs/api-contracts.md) - PdsClientInterface
-- [docs/architecture.md](../../../docs/architecture.md) - User Creates Post flow
+- [net.vza.forum.post.json](../../lexicons/net.vza.forum.post.json)
+- [api-contracts.md](../../api-contracts.md) - PdsClientInterface
+- [architecture.md](../../architecture.md) - User Creates Post flow

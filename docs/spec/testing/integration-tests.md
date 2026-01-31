@@ -777,4 +777,4 @@ return [
 ## References
 - [PHPUnit Database Testing](https://phpunit.de/documentation.html)
 - Component specification files
-- [docs/risks.md](../../docs/risks.md) - D2a: Post Creation Race Condition
+- [risks.md](../risks.md) - D2a: Post Creation Race Condition

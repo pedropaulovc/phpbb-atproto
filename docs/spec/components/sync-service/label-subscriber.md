@@ -404,5 +404,5 @@ The subscriber should deduplicate labels using the unique constraint on `(subjec
 ## References
 - [AT Protocol Labels](https://atproto.com/specs/label)
 - [Label Subscription Lexicon](https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/label/subscribeLabels.json)
-- [docs/moderation-flow.md](../../../docs/moderation-flow.md) - Label processing details
-- [docs/risks.md](../../../docs/risks.md) - D2: CID Mismatch / Sticky Moderation
+- [moderation-flow.md](../../moderation-flow.md) - Label processing details
+- [risks.md](../../risks.md) - D2: CID Mismatch / Sticky Moderation

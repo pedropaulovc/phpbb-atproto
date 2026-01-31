@@ -481,5 +481,5 @@ class CarReader implements CarReaderInterface
 - [AT Protocol Repository Sync](https://atproto.com/specs/sync)
 - [CAR File Format](https://ipld.io/specs/transport/car/)
 - [CBOR Specification](https://cbor.io/)
-- [lexicons/net.vza.forum.post.json](../../../lexicons/net.vza.forum.post.json)
-- [docs/architecture.md](../../../docs/architecture.md) - Event Processor description
+- [net.vza.forum.post.json](../../lexicons/net.vza.forum.post.json)
+- [architecture.md](../../architecture.md) - Event Processor description

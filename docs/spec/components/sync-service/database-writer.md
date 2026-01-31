@@ -494,6 +494,6 @@ private function resolveOrCreateTopic(
 
 ## References
 - [phpBB Database Layer](https://area51.phpbb.com/docs/dev/3.3.x/db/dbal.html)
-- [lexicons/net.vza.forum.post.json](../../../lexicons/net.vza.forum.post.json)
-- [docs/api-contracts.md](../../../docs/api-contracts.md) - PostWriterInterface
-- [docs/risks.md](../../../docs/risks.md) - D2a: Post Creation Race Condition
+- [net.vza.forum.post.json](../../lexicons/net.vza.forum.post.json)
+- [api-contracts.md](../../api-contracts.md) - PostWriterInterface
+- [risks.md](../../risks.md) - D2a: Post Creation Race Condition
