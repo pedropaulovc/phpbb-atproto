@@ -42,7 +42,7 @@ Expected: FAIL with "Class '\phpbb\atproto\ext' not found"
     "type": "phpbb-extension",
     "description": "AT Protocol integration for phpBB - DID authentication and decentralized data",
     "homepage": "https://github.com/pedropaulovc/phpbb-atproto",
-    "license": "MIT",
+    "license": "GPL-2.0-only",
     "authors": [
         {
             "name": "Pedro Paulo Vezza Campos",

@@ -161,7 +161,7 @@ EOF
     "name": "pedropaulovc/phpbb-atproto-dev",
     "description": "Development environment for phpBB AT Protocol integration",
     "type": "project",
-    "license": "MIT",
+    "license": "GPL-2.0-only",
     "require": {
         "php": ">=8.2"
     },
@@ -213,7 +213,7 @@ Create directory and file:
     "type": "phpbb-extension",
     "description": "AT Protocol integration for phpBB - DID authentication and decentralized data",
     "homepage": "https://github.com/pedropaulovc/phpbb-atproto",
-    "license": "MIT",
+    "license": "GPL-2.0-only",
     "authors": [
         {
             "name": "Pedro Paulo Vezza Campos",
