@@ -101,9 +101,9 @@ class AuthFlowTest extends TestCase
                 [
                     'id' => '#atproto_pds',
                     'type' => 'AtprotoPersonalDataServer',
-                    'serviceEndpoint' => 'https://bsky.social'
-                ]
-            ]
+                    'serviceEndpoint' => 'https://bsky.social',
+                ],
+            ],
         ];
 
         $pdsUrl = $resolver->extractPdsUrl($didDoc);
