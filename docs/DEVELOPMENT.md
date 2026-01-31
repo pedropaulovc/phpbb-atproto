@@ -94,9 +94,15 @@ Complete guide to setting up and using the phpBB AT Protocol development environ
 - PHP 8.2+ with extensions: sodium, pdo_mysql, gd, zip, opcache, xdebug
 - MySQL 8.0
 - Composer 2.x
-- PHPUnit 9.x
+- PHPUnit 10.x (installed via PHAR - see note below)
 - PHP-CS-Fixer 3.x
 - PHPStan 1.x
+
+> **Note on PHPUnit:** PHPUnit is installed as a standalone PHAR file rather than via Composer.
+> This is because phpBB 3.3.x bundles PHPUnit 7.x with dependencies locked to PHP 7.2, which is
+> incompatible with PHP 8.2 (PHPUnit 7.x uses `$GLOBALS` references forbidden in PHP 8.1+).
+> The PHAR approach bypasses these Composer dependency conflicts while providing a modern,
+> PHP 8.2-compatible test runner.
 
 ### Quick Start
 

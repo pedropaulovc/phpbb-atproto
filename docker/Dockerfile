@@ -62,6 +62,15 @@ RUN { \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Install PHPUnit 10.x via PHAR for PHP 8.2 compatibility
+# phpBB 3.3.x ships with PHPUnit 7.x via Composer, but:
+#   - PHPUnit 7.x uses $GLOBALS references forbidden in PHP 8.1+
+#   - phpBB's other deps are locked to PHP 7.x, blocking Composer upgrade
+# Solution: Install PHPUnit PHAR separately, bypassing Composer conflicts
+RUN curl -sSL https://phar.phpunit.de/phpunit-10.phar -o /usr/local/bin/phpunit \
+    && chmod +x /usr/local/bin/phpunit \
+    && phpunit --version
+
 # Override PHP configuration for development
 RUN { \
     echo 'memory_limit = 512M'; \

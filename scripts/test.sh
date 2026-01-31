@@ -10,12 +10,12 @@ SUITE="${1:-all}"
 
 run_unit_tests() {
     echo "Running unit tests..."
-    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb vendor/bin/phpunit --testsuite unit
+    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb phpunit --testsuite unit
 }
 
 run_integration_tests() {
     echo "Running integration tests..."
-    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb vendor/bin/phpunit -c phpunit.integration.xml
+    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb phpunit -c phpunit.integration.xml
 }
 
 run_e2e_tests() {
