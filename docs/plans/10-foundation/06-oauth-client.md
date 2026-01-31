@@ -1,4 +1,6 @@
-# Task 6: OAuth Client
+# Task 6: OAuth Client (Basic Structure)
+
+> **Note:** This task creates the basic OAuth client structure. Tasks 14-15 add the required AT Protocol extensions (DPoP, PAR) that make this actually work with bsky.social.
 
 **Files:**
 - Create: `ext/phpbb/atproto/auth/oauth_client.php`
