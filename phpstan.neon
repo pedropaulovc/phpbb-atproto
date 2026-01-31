@@ -1,10 +1,10 @@
 parameters:
     level: 6
+    phpVersion: 80200
     paths:
         - ext/phpbb/atproto
     excludePaths:
         - ext/phpbb/atproto/migrations
-    checkMissingIterableValueType: false
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - '#Access to undefined constant IN_PHPBB#'

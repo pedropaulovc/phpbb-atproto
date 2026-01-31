@@ -25,12 +25,12 @@ run_e2e_tests() {
 
 run_lint() {
     echo "Running linter..."
-    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb vendor/bin/php-cs-fixer fix --dry-run --diff
+    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb php-cs-fixer fix --dry-run --diff
 }
 
 run_static_analysis() {
     echo "Running static analysis..."
-    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb vendor/bin/phpstan analyse
+    docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec -T phpbb phpstan analyse
 }
 
 case "$SUITE" in

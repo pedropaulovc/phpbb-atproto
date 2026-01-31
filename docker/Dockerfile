@@ -62,14 +62,24 @@ RUN { \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Install PHPUnit 10.x via PHAR for PHP 8.2 compatibility
-# phpBB 3.3.x ships with PHPUnit 7.x via Composer, but:
-#   - PHPUnit 7.x uses $GLOBALS references forbidden in PHP 8.1+
-#   - phpBB's other deps are locked to PHP 7.x, blocking Composer upgrade
-# Solution: Install PHPUnit PHAR separately, bypassing Composer conflicts
+# Install dev tools via PHAR for PHP 8.2 compatibility
+# phpBB 3.3.x requires Symfony 3.x, but modern dev tools need Symfony 5.x/6.x
+# Solution: Install PHARs separately, bypassing Composer dependency conflicts
+
+# PHPUnit 10.x
 RUN curl -sSL https://phar.phpunit.de/phpunit-10.phar -o /usr/local/bin/phpunit \
     && chmod +x /usr/local/bin/phpunit \
     && phpunit --version
+
+# PHP-CS-Fixer
+RUN curl -sSL https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/releases/latest/download/php-cs-fixer.phar -o /usr/local/bin/php-cs-fixer \
+    && chmod +x /usr/local/bin/php-cs-fixer \
+    && php-cs-fixer --version
+
+# PHPStan
+RUN curl -sSL https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar -o /usr/local/bin/phpstan \
+    && chmod +x /usr/local/bin/phpstan \
+    && phpstan --version
 
 # Override PHP configuration for development
 RUN { \
