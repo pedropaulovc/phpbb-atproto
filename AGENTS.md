@@ -76,16 +76,35 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exe
 |-----------|----------|------------|
 | PHP runtime | Docker `phpbb` service | `docker compose exec phpbb php ...` |
 | MySQL | Docker `db` service | `docker compose exec db mysql ...` |
+| MySQL (test) | Docker `db-test` service | `docker compose exec db-test mysql ...` |
 | Unit tests | Docker | `./scripts/test.sh unit` |
 | Integration tests | Docker | `./scripts/test.sh integration` |
 | E2E tests | Windows Node.js | `cd tests/e2e && npm test` |
 | Linting | Docker | `./scripts/test.sh lint` |
+| Static analysis | Docker | `./scripts/test.sh analyse` |
 
 ### Starting Fresh Session
 
 1. Start environment: `./scripts/dev-up.sh`
 2. Verify services: `docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps`
 3. Run quick test: `./scripts/test.sh lint`
+
+### Test Commands
+
+```bash
+# All tests (lint + analysis + unit + integration)
+./scripts/test.sh all
+
+# Individual test suites
+./scripts/test.sh unit          # Unit tests only
+./scripts/test.sh integration   # Integration tests only
+./scripts/test.sh lint          # Code style check
+./scripts/test.sh analyse       # Static analysis
+
+# E2E tests (run from Windows, not Docker)
+cd tests/e2e && npm test        # Headless
+cd tests/e2e && npm run test:headed   # With browser visible
+```
 
 ### PHP Tooling Reference
 
@@ -102,3 +121,19 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exe
 - Node.js runs natively on Windows for E2E tests
 - Docker Desktop must be running
 - File paths in JS/TS use Windows style: `C:\\path\\to\\file`
+
+### Troubleshooting
+
+```bash
+# View container status
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps
+
+# View logs
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml logs -f phpbb
+
+# Reset test database
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec db-test mysql -u root -ptestroot -e "DROP DATABASE IF EXISTS phpbb_test; CREATE DATABASE phpbb_test;"
+
+# Fix permissions
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec phpbb chown -R www-data:www-data /var/www/html/ext
+```
