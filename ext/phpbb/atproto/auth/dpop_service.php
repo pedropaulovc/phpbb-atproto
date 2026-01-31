@@ -4,17 +4,29 @@ declare(strict_types=1);
 
 namespace phpbb\atproto\auth;
 
+use phpbb\db\driver\driver_interface;
+
 /**
- * DPoP (Demonstration of Proof-of-Possession) service.
+ * DPoP (Demonstration of Proof-of-Possession) service with optional database persistence.
  *
  * Implements DPoP proofs for AT Protocol OAuth as specified in RFC 9449.
  * Uses ES256 (ECDSA with P-256 and SHA-256) for signing.
+ *
+ * The keypair is stored encrypted in the database to ensure:
+ * 1. Consistency across multiple app servers
+ * 2. Persistence across restarts
+ * 3. Token binding remains valid
  *
  * @see https://datatracker.ietf.org/doc/html/rfc9449
  * @see https://docs.bsky.app/docs/advanced-guides/oauth-client#dpop
  */
 class dpop_service implements dpop_service_interface
 {
+    private const CONFIG_KEY = 'dpop_keypair';
+
+    private ?driver_interface $db;
+    private ?token_encryption $encryption;
+    private string $tablePrefix;
     private ?array $keypair = null;
     private ?string $privateKeyPem = null;
     private ?\OpenSSLAsymmetricKey $privateKey = null;
@@ -22,12 +34,24 @@ class dpop_service implements dpop_service_interface
     /**
      * Constructor.
      *
-     * @param string|null $storedKeypair JSON-encoded keypair from storage (optional)
+     * @param driver_interface|null   $db          Database driver (optional for testing)
+     * @param token_encryption|null   $encryption  Token encryption service (optional for testing)
+     * @param string                  $tablePrefix Table prefix (default: 'phpbb_')
+     * @param string|null             $storedKeypair JSON-encoded keypair from storage (for testing only)
      */
-    public function __construct(?string $storedKeypair = null)
-    {
+    public function __construct(
+        ?driver_interface $db = null,
+        ?token_encryption $encryption = null,
+        string $tablePrefix = 'phpbb_',
+        ?string $storedKeypair = null
+    ) {
+        $this->db = $db;
+        $this->encryption = $encryption;
+        $this->tablePrefix = $tablePrefix;
+
+        // Direct keypair loading for testing
         if ($storedKeypair !== null) {
-            $this->loadKeypair($storedKeypair);
+            $this->loadKeypairFromJson($storedKeypair);
         }
     }
 
@@ -36,8 +60,25 @@ class dpop_service implements dpop_service_interface
      */
     public function getKeypair(): array
     {
-        if ($this->keypair === null) {
-            $this->generateKeypair();
+        if ($this->keypair !== null) {
+            return $this->keypair;
+        }
+
+        // Try to load from database if available
+        if ($this->db !== null) {
+            $stored = $this->loadFromDatabase();
+            if ($stored !== null) {
+                $this->loadKeypairFromJson($stored);
+                return $this->keypair;
+            }
+        }
+
+        // Generate new keypair
+        $this->generateKeypair();
+
+        // Store to database if available
+        if ($this->db !== null) {
+            $this->saveToDatabase();
         }
 
         return $this->keypair;
@@ -48,16 +89,33 @@ class dpop_service implements dpop_service_interface
      */
     public function createProof(string $method, string $url, ?string $accessToken = null): string
     {
+        return $this->createProofWithNonce($method, $url, null, $accessToken);
+    }
+
+    /**
+     * Create a DPoP proof with optional nonce.
+     *
+     * @param string      $method      HTTP method
+     * @param string      $url         Request URL
+     * @param string|null $nonce       Server-provided nonce
+     * @param string|null $accessToken Access token for resource requests
+     *
+     * @return string DPoP proof JWT
+     */
+    public function createProofWithNonce(
+        string $method,
+        string $url,
+        ?string $nonce = null,
+        ?string $accessToken = null
+    ): string {
         $keypair = $this->getKeypair();
 
-        // JWT header
         $header = [
             'typ' => 'dpop+jwt',
             'alg' => 'ES256',
             'jwk' => $keypair['jwk'],
         ];
 
-        // JWT payload
         $payload = [
             'jti' => bin2hex(random_bytes(16)),
             'htm' => strtoupper($method),
@@ -65,17 +123,18 @@ class dpop_service implements dpop_service_interface
             'iat' => time(),
         ];
 
-        // Include access token hash for resource requests
+        if ($nonce !== null) {
+            $payload['nonce'] = $nonce;
+        }
+
         if ($accessToken !== null) {
             $payload['ath'] = $this->hashAccessToken($accessToken);
         }
 
-        // Create JWT
         $headerB64 = $this->base64UrlEncode(json_encode($header));
         $payloadB64 = $this->base64UrlEncode(json_encode($payload));
         $signingInput = $headerB64 . '.' . $payloadB64;
 
-        // Sign with ES256
         $signature = $this->signEs256($signingInput);
 
         return $signingInput . '.' . $signature;
@@ -125,11 +184,71 @@ class dpop_service implements dpop_service_interface
     }
 
     /**
+     * Load keypair from database.
+     *
+     * @return string|null Decrypted keypair JSON or null if not found
+     */
+    private function loadFromDatabase(): ?string
+    {
+        $configTable = $this->tablePrefix . 'atproto_config';
+
+        // Check if table exists by trying the query
+        try {
+            $sql = 'SELECT config_value
+                    FROM ' . $configTable . '
+                    WHERE config_name = \'' . $this->db->sql_escape(self::CONFIG_KEY) . '\'';
+
+            $result = $this->db->sql_query($sql);
+            $row = $this->db->sql_fetchrow($result);
+            $this->db->sql_freeresult($result);
+
+            if ($row === false || empty($row['config_value'])) {
+                return null;
+            }
+
+            // Decrypt if encryption is available
+            if ($this->encryption !== null) {
+                return $this->encryption->decrypt($row['config_value']);
+            }
+
+            return $row['config_value'];
+        } catch (\Throwable $e) {
+            // Table doesn't exist yet (migrations not run)
+            return null;
+        }
+    }
+
+    /**
+     * Save keypair to database.
+     */
+    private function saveToDatabase(): void
+    {
+        $configTable = $this->tablePrefix . 'atproto_config';
+        $keypairJson = $this->exportKeypair();
+
+        // Encrypt if encryption is available
+        $valueToStore = $this->encryption !== null
+            ? $this->encryption->encrypt($keypairJson)
+            : $keypairJson;
+
+        try {
+            $sql = 'INSERT INTO ' . $configTable . '
+                    (config_name, config_value)
+                    VALUES (\'' . $this->db->sql_escape(self::CONFIG_KEY) . '\',
+                            \'' . $this->db->sql_escape($valueToStore) . '\')';
+
+            $this->db->sql_query($sql);
+        } catch (\Throwable $e) {
+            // Table doesn't exist yet (migrations not run) - skip silently
+            // The keypair will be persisted once migrations run
+        }
+    }
+
+    /**
      * Generate a new ES256 keypair.
      */
     private function generateKeypair(): void
     {
-        // Generate EC key with P-256 curve
         $config = [
             'curve_name' => 'prime256v1',
             'private_key_type' => OPENSSL_KEYTYPE_EC,
@@ -140,16 +259,13 @@ class dpop_service implements dpop_service_interface
             throw new \RuntimeException('Failed to generate EC keypair: ' . openssl_error_string());
         }
 
-        // Export private key
         openssl_pkey_export($key, $privateKeyPem);
 
-        // Get key details for JWK
         $details = openssl_pkey_get_details($key);
         if ($details === false || $details['type'] !== OPENSSL_KEYTYPE_EC) {
             throw new \RuntimeException('Failed to get EC key details');
         }
 
-        // Build JWK from EC key parameters
         $jwk = [
             'kty' => 'EC',
             'crv' => 'P-256',
@@ -169,9 +285,9 @@ class dpop_service implements dpop_service_interface
     }
 
     /**
-     * Load a keypair from storage.
+     * Load a keypair from JSON.
      */
-    private function loadKeypair(string $json): void
+    private function loadKeypairFromJson(string $json): void
     {
         $data = json_decode($json, true);
         if (!is_array($data) || !isset($data['private'], $data['public'], $data['jwk'])) {
@@ -197,16 +313,14 @@ class dpop_service implements dpop_service_interface
     private function signEs256(string $data): string
     {
         if ($this->privateKey === null) {
-            $this->generateKeypair();
+            $this->getKeypair();
         }
 
-        // Sign with SHA-256
         $success = openssl_sign($data, $signature, $this->privateKey, OPENSSL_ALGO_SHA256);
         if (!$success) {
             throw new \RuntimeException('Failed to sign: ' . openssl_error_string());
         }
 
-        // OpenSSL returns DER-encoded signature, convert to R||S format for JWT
         $signature = $this->derToRs($signature);
 
         return $this->base64UrlEncode($signature);
@@ -224,16 +338,13 @@ class dpop_service implements dpop_service_interface
      */
     private function derToRs(string $der): string
     {
-        // DER structure: SEQUENCE { INTEGER r, INTEGER s }
         $offset = 0;
 
-        // Skip SEQUENCE tag and length
         if (ord($der[$offset++]) !== 0x30) {
             throw new \RuntimeException('Invalid DER signature: missing SEQUENCE');
         }
         $this->readDerLength($der, $offset);
 
-        // Read R
         if (ord($der[$offset++]) !== 0x02) {
             throw new \RuntimeException('Invalid DER signature: missing INTEGER for R');
         }
@@ -241,14 +352,12 @@ class dpop_service implements dpop_service_interface
         $r = substr($der, $offset, $rLen);
         $offset += $rLen;
 
-        // Read S
         if (ord($der[$offset++]) !== 0x02) {
             throw new \RuntimeException('Invalid DER signature: missing INTEGER for S');
         }
         $sLen = $this->readDerLength($der, $offset);
         $s = substr($der, $offset, $sLen);
 
-        // Pad/trim to 32 bytes each (P-256 uses 256-bit integers)
         $r = $this->padInteger($r, 32);
         $s = $this->padInteger($s, 32);
 
@@ -279,15 +388,12 @@ class dpop_service implements dpop_service_interface
      */
     private function padInteger(string $int, int $length): string
     {
-        // Remove leading zeros
         $int = ltrim($int, "\x00");
 
-        // Handle negative numbers (leading 0x00 in DER indicates positive)
         if (strlen($int) > $length) {
             $int = substr($int, -$length);
         }
 
-        // Pad to required length
         return str_pad($int, $length, "\x00", STR_PAD_LEFT);
     }
 

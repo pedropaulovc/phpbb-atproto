@@ -6,7 +6,10 @@ services:
     # DPoP service for token binding (AT Protocol requirement)
     phpbb.atproto.auth.dpop_service:
         class: phpbb\atproto\auth\dpop_service
-        arguments: []
+        arguments:
+            - '@dbal.conn'
+            - '@phpbb.atproto.token_encryption'
+            - '%core.table_prefix%'
 
     # DID resolution service
     phpbb.atproto.did_resolver:

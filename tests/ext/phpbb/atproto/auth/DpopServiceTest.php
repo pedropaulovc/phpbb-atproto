@@ -15,7 +15,7 @@ class DpopServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Create a fresh keypair for testing
+        // Create a service without database for testing
         $this->service = new dpop_service();
     }
 
@@ -116,8 +116,8 @@ class DpopServiceTest extends TestCase
         $keypair1 = $this->service->getKeypair();
         $exported = $this->service->exportKeypair();
 
-        // Load into new instance
-        $service2 = new dpop_service($exported);
+        // Load into new instance via constructor's storedKeypair parameter
+        $service2 = new dpop_service(null, null, 'phpbb_', $exported);
         $keypair2 = $service2->getKeypair();
 
         // Should be same keypair
@@ -167,12 +167,28 @@ class DpopServiceTest extends TestCase
     public function test_invalid_keypair_json_throws_exception(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        new dpop_service('not valid json');
+        new dpop_service(null, null, 'phpbb_', 'not valid json');
     }
 
     public function test_incomplete_keypair_json_throws_exception(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        new dpop_service('{"private": "x"}');
+        new dpop_service(null, null, 'phpbb_', '{"private": "x"}');
+    }
+
+    public function test_create_proof_with_nonce(): void
+    {
+        $nonce = 'test-nonce-value';
+        $proof = $this->service->createProofWithNonce(
+            'POST',
+            'https://bsky.social/oauth/token',
+            $nonce
+        );
+
+        $parts = explode('.', $proof);
+        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+
+        $this->assertArrayHasKey('nonce', $payload);
+        $this->assertEquals($nonce, $payload['nonce']);
     }
 }
