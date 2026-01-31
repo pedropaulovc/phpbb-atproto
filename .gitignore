@@ -1,12 +1,28 @@
-# Docker volumes
-docker/data/
-docker/*.sql
+# Dependencies
+/vendor/
+/node_modules/
+tests/e2e/node_modules/
+composer.lock
+package-lock.json
+
+# Build outputs
+/build/
+/dist/
+*.phar
+
+# Test artifacts
+/coverage/
+/tests/coverage/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
+/.phpunit.result.cache
 
 # IDE
-.idea/
-.vscode/
+/.idea/
+/.vscode/
 *.swp
 *.swo
+*.sublime-*
 
 # OS
 .DS_Store
@@ -16,26 +32,21 @@ Thumbs.db
 *.log
 logs/
 
-# Environment files with secrets
+# Environment
 .env
 .env.local
 .env.*.local
+*.local.php
 
-# Composer
-/vendor/
-composer.lock
+# PHP-CS-Fixer
+/.php-cs-fixer.cache
 
-# Node (if any frontend tooling)
-node_modules/
-package-lock.json
+# PHPStan
+/phpstan-baseline.neon
 
-# Build artifacts
-/build/
-/dist/
+# Docker volumes (local)
+/docker/data/
+docker/*.sql
 
-# Test coverage
-/coverage/
-.phpunit.result.cache
-
-# Git worktrees
-.worktrees/
+# Worktrees
+/.worktrees/
