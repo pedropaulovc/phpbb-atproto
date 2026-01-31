@@ -1,0 +1,13 @@
+{% if S_USER_LOGGED_IN and ATPROTO_DID %}
+<li class="atproto-status" title="{L_ATPROTO_LINKED_AS}: {ATPROTO_HANDLE}">
+    <span class="atproto-icon">🔗</span>
+</li>
+{% endif %}
+
+{% if not S_USER_LOGGED_IN %}
+<li class="atproto-login-link">
+    <a href="{U_ATPROTO_LOGIN}" title="{L_ATPROTO_LOGIN}">
+        {L_ATPROTO_LOGIN}
+    </a>
+</li>
+{% endif %}

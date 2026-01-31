@@ -1,0 +1,49 @@
+{% INCLUDE 'overall_header.html' %}
+
+<div class="panel">
+    <div class="inner">
+        <h2 class="panel-title">{L_ATPROTO_LOGIN}</h2>
+
+        {% if ATPROTO_LOGIN_ERROR %}
+        <div class="error">
+            {ATPROTO_LOGIN_ERROR}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{U_ATPROTO_LOGIN}" class="atproto-login-form">
+            <fieldset>
+                <dl>
+                    <dt>
+                        <label for="atproto_handle">{L_ATPROTO_LOGIN_HANDLE}:</label>
+                        <br><span class="explain">{L_ATPROTO_LOGIN_HANDLE_EXPLAIN}</span>
+                    </dt>
+                    <dd>
+                        <input type="text"
+                               name="handle"
+                               id="atproto_handle"
+                               class="inputbox autowidth"
+                               placeholder="alice.bsky.social"
+                               autocomplete="username"
+                               required>
+                    </dd>
+                </dl>
+            </fieldset>
+
+            <fieldset class="submit-buttons">
+                <input type="submit"
+                       name="login"
+                       value="{L_ATPROTO_LOGIN_BUTTON}"
+                       class="button1">
+            </fieldset>
+        </form>
+
+        <hr>
+
+        <p class="atproto-alt-login">
+            {L_ATPROTO_LOGIN_OR}
+            <a href="{U_LOGIN}">{L_LOGIN}</a>
+        </p>
+    </div>
+</div>
+
+{% INCLUDE 'overall_footer.html' %}
